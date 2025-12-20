@@ -387,7 +387,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
              {scenes.length} 个角落 · {allCategories.length} 个空间
            </p>
         </div>
-        <div className="flex gap-2 hidden">
+        <div className="flex gap-2">
             <button 
               onClick={() => {
                   setIsSelectionMode(!isSelectionMode);
@@ -482,6 +482,12 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
                         key={scene.id} 
                         scene={scene} 
                         onClick={() => isSelectionMode ? toggleSelection(scene.id) : setSelectedScene(scene)} 
+                        onLongPress={() => {
+                          if (!isSelectionMode) {
+                            setIsSelectionMode(true);
+                            toggleSelection(scene.id);
+                          }
+                        }}
                         isSelected={selectedIds.has(scene.id)}
                         isSelectionMode={isSelectionMode}
                         />
@@ -504,6 +510,12 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
                       key={scene.id} 
                       scene={scene} 
                       onClick={() => isSelectionMode ? toggleSelection(scene.id) : setSelectedScene(scene)} 
+                      onLongPress={() => {
+                        if (!isSelectionMode) {
+                          setIsSelectionMode(true);
+                          toggleSelection(scene.id);
+                        }
+                      }}
                       isSelected={selectedIds.has(scene.id)}
                       isSelectionMode={isSelectionMode}
                     />
@@ -834,30 +846,54 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
 const SceneCard: React.FC<{ 
   scene: SceneRecord; 
   onClick: () => void;
+  onLongPress: () => void;
   isSelected?: boolean;
   isSelectionMode?: boolean;
-}> = ({ scene, onClick, isSelected, isSelectionMode }) => (
-  <div 
-    onClick={onClick}
-    className={`relative bg-white rounded-3xl overflow-hidden border shadow-sm active:scale-95 transition-all ${isSelected ? 'border-blue-500 ring-2 ring-blue-500 ring-offset-2' : 'border-gray-100'}`}
-  >
-    {isSelectionMode && (
-      <div className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center z-10 ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-white/50 border-white'}`}>
-        {isSelected && <i className="fa-solid fa-check text-white text-xs"></i>}
-      </div>
-    )}
-    <div className="aspect-square overflow-hidden bg-gray-50 relative">
-      <img src={scene.fullImageUrl} className="w-full h-full object-cover" alt={scene.locationCategory} />
-      {/* Overlay when selected in selection mode */}
-      {isSelectionMode && isSelected && (
-        <div className="absolute inset-0 bg-blue-500/20"></div>
+}> = ({ scene, onClick, onLongPress, isSelected, isSelectionMode }) => {
+  const timerRef = React.useRef<any>(null);
+
+  const handleStart = () => {
+    timerRef.current = setTimeout(() => {
+      onLongPress();
+      if (navigator.vibrate) navigator.vibrate(50);
+    }, 500);
+  };
+
+  const handleEnd = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  return (
+    <div 
+      onClick={onClick}
+      onMouseDown={handleStart}
+      onMouseUp={handleEnd}
+      onMouseLeave={handleEnd}
+      onTouchStart={handleStart}
+      onTouchEnd={handleEnd}
+      className={`relative bg-white rounded-3xl overflow-hidden border shadow-sm active:scale-95 transition-all ${isSelected ? 'border-blue-500 ring-2 ring-blue-500 ring-offset-2' : 'border-gray-100'}`}
+    >
+      {isSelectionMode && (
+        <div className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center z-10 ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-white/50 border-white'}`}>
+          {isSelected && <i className="fa-solid fa-check text-white text-xs"></i>}
+        </div>
       )}
+      <div className="aspect-square overflow-hidden bg-gray-50 relative">
+        <img src={scene.fullImageUrl} className="w-full h-full object-cover" alt={scene.locationCategory} />
+        {/* Overlay when selected in selection mode */}
+        {isSelectionMode && isSelected && (
+          <div className="absolute inset-0 bg-blue-500/20"></div>
+        )}
+      </div>
+      <div className="p-4">
+        <p className="text-sm font-bold text-black truncate mb-1">{scene.locationCategory}</p>
+        <p className="text-xs text-gray-400 font-medium">{new Date(scene.timestamp).toLocaleDateString()}</p>
+      </div>
     </div>
-    <div className="p-4">
-      <p className="text-sm font-bold text-black truncate mb-1">{scene.locationCategory}</p>
-      <p className="text-xs text-gray-400 font-medium">{new Date(scene.timestamp).toLocaleDateString()}</p>
-    </div>
-  </div>
-);
+  );
+};
 
 export default GalleryView;
