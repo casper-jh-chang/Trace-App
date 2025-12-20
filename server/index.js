@@ -6,7 +6,10 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Load environment variables from .env.local
+// Load environment variables
+// Try loading .env first, then .env.local (if exists, it won't override set vars by default in older dotenv, 
+// but standard practice is usually just .env for prod)
+dotenv.config();
 dotenv.config({ path: '.env.local' });
 
 const __filename = fileURLToPath(import.meta.url);
@@ -261,7 +264,7 @@ app.delete('/api/chats', async (req, res) => {
 
 // The "catchall" handler: for any request that doesn't
 // match one above, send back React's index.html file.
-app.get('*', (req, res) => {
+app.get('(.*)', (req, res) => {
   // Don't intercept API requests
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ error: 'Not Found' });
