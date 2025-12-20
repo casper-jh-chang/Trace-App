@@ -19,12 +19,12 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, onCame
           <span className="text-[10px] font-bold">找东西</span>
         </button>
         
-        <div className="relative -top-5">
+        <div className="relative -top-8">
           <button 
             onClick={() => onCameraClick ? onCameraClick() : setActiveTab('storage')}
-            className="w-16 h-16 bg-black text-white rounded-2xl shadow-xl flex flex-col items-center justify-center active:scale-90 transition-all border-[4px] border-[#F2F2F7]"
+            className="w-20 h-20 bg-black text-white rounded-2xl shadow-xl flex flex-col items-center justify-center active:scale-90 transition-all border-[4px] border-[#F2F2F7]"
           >
-            <i className="fa-solid fa-camera text-2xl mb-0.5"></i>
+            <i className="fa-solid fa-camera text-3xl mb-0.5"></i>
             <span className="text-[10px] font-bold">记东西</span>
           </button>
         </div>

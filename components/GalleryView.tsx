@@ -450,12 +450,22 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
             {Object.entries(groupedScenes.groups).map(([category, groupScenes]) => (
               <div key={category} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
+                    <div 
+                        className="flex items-center gap-2 cursor-pointer active:opacity-70 transition-opacity select-none"
+                        onClick={() => {
+                            const newSet = new Set(collapsedCategories);
+                            if (newSet.has(category)) newSet.delete(category);
+                            else newSet.add(category);
+                            setCollapsedCategories(newSet);
+                        }}
+                    >
+                        <i className={`fa-solid fa-chevron-right text-gray-400 text-sm transition-transform duration-200 ${!collapsedCategories.has(category) ? 'rotate-90' : ''}`}></i>
                         <h2 className="text-xl font-bold text-black">{category}</h2>
                         <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded-md text-xs font-bold">{groupScenes.length}</span>
                     </div>
                     <button 
-                        onClick={() => {
+                        onClick={(e) => {
+                            e.stopPropagation();
                             setManagingCategory(category);
                             setRenameInput('');
                             setMergeTarget('');
@@ -465,17 +475,19 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
                         <i className="fa-solid fa-ellipsis"></i>
                     </button>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  {groupScenes.map(scene => (
-                    <SceneCard 
-                      key={scene.id} 
-                      scene={scene} 
-                      onClick={() => isSelectionMode ? toggleSelection(scene.id) : setSelectedScene(scene)} 
-                      isSelected={selectedIds.has(scene.id)}
-                      isSelectionMode={isSelectionMode}
-                    />
-                  ))}
-                </div>
+                {!collapsedCategories.has(category) && (
+                    <div className="grid grid-cols-2 gap-4">
+                    {groupScenes.map(scene => (
+                        <SceneCard 
+                        key={scene.id} 
+                        scene={scene} 
+                        onClick={() => isSelectionMode ? toggleSelection(scene.id) : setSelectedScene(scene)} 
+                        isSelected={selectedIds.has(scene.id)}
+                        isSelectionMode={isSelectionMode}
+                        />
+                    ))}
+                    </div>
+                )}
               </div>
             ))}
 
