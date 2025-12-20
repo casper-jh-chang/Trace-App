@@ -1,0 +1,261 @@
+import express from 'express';
+import cors from 'cors';
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Load environment variables from .env.local
+dotenv.config({ path: '.env.local' });
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+const DB_FILE = process.env.DB_FILE || './drawer.db';
+
+app.use(cors());
+app.use(express.json({ limit: '50mb' })); // Increase limit for base64 images
+
+// Database initialization
+let db;
+
+async function initDB() {
+  db = await open({
+    filename: DB_FILE,
+    driver: sqlite3.Database
+  });
+
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS categories (
+      name TEXT PRIMARY KEY,
+      "order" INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS scenes (
+      id TEXT PRIMARY KEY,
+      fullImageUrl TEXT,
+      timestamp INTEGER,
+      locationCategory TEXT,
+      superCategory TEXT,
+      items TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS chats (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      role TEXT,
+      content TEXT,
+      timestamp INTEGER
+    );
+  `);
+
+  console.log(`Connected to database at ${DB_FILE}`);
+}
+
+initDB().catch(err => {
+  console.error('Failed to initialize database', err);
+});
+
+// Routes
+
+// --- Categories ---
+
+app.get('/api/categories', async (req, res) => {
+  try {
+    const categories = await db.all('SELECT * FROM categories ORDER BY "order" ASC');
+    res.json(categories.map(c => c.name));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/categories', async (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'Name is required' });
+
+  try {
+    const result = await db.get('SELECT MAX("order") as maxOrder FROM categories');
+    const maxOrder = result.maxOrder !== null ? result.maxOrder : -1;
+
+    await db.run('INSERT INTO categories (name, "order") VALUES (?, ?)', [name, maxOrder + 1]);
+    res.status(201).json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/categories/order', async (req, res) => {
+  const { categories } = req.body;
+  if (!Array.isArray(categories)) return res.status(400).json({ error: 'Categories array is required' });
+
+  try {
+    await db.run('BEGIN TRANSACTION');
+    for (let i = 0; i < categories.length; i++) {
+      await db.run('UPDATE categories SET "order" = ? WHERE name = ?', [i, categories[i]]);
+    }
+    await db.run('COMMIT');
+    res.json({ success: true });
+  } catch (err) {
+    await db.run('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/categories/:name', async (req, res) => {
+  const { name } = req.params;
+  try {
+    await db.run('DELETE FROM categories WHERE name = ?', [name]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/categories/:oldName', async (req, res) => {
+  const { oldName } = req.params;
+  const { newName } = req.body;
+
+  if (!newName) return res.status(400).json({ error: 'New name is required' });
+
+  try {
+    await db.run('BEGIN TRANSACTION');
+
+    // Get old order
+    const oldCat = await db.get('SELECT "order" FROM categories WHERE name = ?', [oldName]);
+    const order = oldCat ? oldCat.order : 0;
+
+    // Insert new, delete old
+    await db.run('INSERT INTO categories (name, "order") VALUES (?, ?)', [newName, order]);
+    await db.run('DELETE FROM categories WHERE name = ?', [oldName]);
+
+    // Update scenes
+    await db.run('UPDATE scenes SET superCategory = ? WHERE superCategory = ?', [newName, oldName]);
+
+    await db.run('COMMIT');
+    res.json({ success: true });
+  } catch (err) {
+    await db.run('ROLLBACK');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Scenes ---
+
+app.get('/api/scenes', async (req, res) => {
+  try {
+    const scenes = await db.all('SELECT * FROM scenes ORDER BY timestamp DESC');
+    const parsedScenes = scenes.map(scene => ({
+      ...scene,
+      items: JSON.parse(scene.items || '[]')
+    }));
+    res.json(parsedScenes);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/scenes', async (req, res) => {
+  const scene = req.body;
+  if (!scene.id) return res.status(400).json({ error: 'Scene ID is required' });
+
+  try {
+    await db.run(
+      `INSERT INTO scenes (id, fullImageUrl, timestamp, locationCategory, superCategory, items) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        scene.id,
+        scene.fullImageUrl,
+        scene.timestamp,
+        scene.locationCategory,
+        scene.superCategory,
+        JSON.stringify(scene.items)
+      ]
+    );
+    res.status(201).json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/scenes/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.run('DELETE FROM scenes WHERE id = ?', [id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/scenes/:id', async (req, res) => {
+  const { id } = req.params;
+  const updates = req.body;
+
+  try {
+    const existing = await db.get('SELECT * FROM scenes WHERE id = ?', [id]);
+    if (!existing) return res.status(404).json({ error: 'Scene not found' });
+
+    const itemsStr = typeof updates.items === 'object' ? JSON.stringify(updates.items) : existing.items;
+
+    await db.run(
+      `UPDATE scenes SET 
+       fullImageUrl = ?, 
+       timestamp = ?, 
+       locationCategory = ?, 
+       superCategory = ?, 
+       items = ? 
+       WHERE id = ?`,
+      [
+        updates.fullImageUrl || existing.fullImageUrl,
+        updates.timestamp || existing.timestamp,
+        updates.locationCategory || existing.locationCategory,
+        updates.superCategory || existing.superCategory,
+        itemsStr,
+        id
+      ]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Chats ---
+
+app.get('/api/chats', async (req, res) => {
+  try {
+    const chats = await db.all('SELECT * FROM chats ORDER BY id ASC');
+    res.json(chats);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/chats', async (req, res) => {
+  const { role, content } = req.body;
+  try {
+    const result = await db.run(
+      'INSERT INTO chats (role, content, timestamp) VALUES (?, ?, ?)',
+      [role, content, Date.now()]
+    );
+    res.status(201).json({ id: result.lastID, role, content });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/chats', async (req, res) => {
+  try {
+    await db.run('DELETE FROM chats');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
