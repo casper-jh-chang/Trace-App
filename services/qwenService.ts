@@ -3,9 +3,8 @@ import { AIAnalysisResult, SceneRecord, ChatMessage, SceneType, ChatAIResponse }
 const API_KEY = import.meta.env.VITE_DASHSCOPE_API_KEY || "sk-05437c944b084b288c3948746c58630e";
 
 // Qwen VL Max API endpoint
-const QWEN_API_URL = import.meta.env.DEV
-  ? "/dashscope-api/api/v1/services/aigc/multimodal-generation/generation"
-  : "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation";
+// Use proxy path in both Dev (Vite) and Prod (Nginx) to avoid CORS issues
+const QWEN_API_URL = "/dashscope-api/api/v1/services/aigc/multimodal-generation/generation";
 
 export const analyzeImageQwen = async (base64Image: string, knownSpaces: string[] = []): Promise<AIAnalysisResult> => {
   const spacesContext = knownSpaces.length > 0

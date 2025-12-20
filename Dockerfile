@@ -12,6 +12,14 @@ RUN npm install
 # 复制源代码
 COPY . .
 
+# 接收构建参数 (API Keys)
+ARG VITE_GEMINI_API_KEY
+ARG VITE_DASHSCOPE_API_KEY
+
+# 设置环境变量供构建使用
+ENV VITE_GEMINI_API_KEY=$VITE_GEMINI_API_KEY
+ENV VITE_DASHSCOPE_API_KEY=$VITE_DASHSCOPE_API_KEY
+
 # 构建前端
 RUN npm run build
 

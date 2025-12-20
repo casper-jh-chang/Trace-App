@@ -1,7 +1,11 @@
 version: '3'
 services:
   app:
-    build: .
+    build: 
+      context: .
+      args:
+        - VITE_GEMINI_API_KEY=${VITE_GEMINI_API_KEY}
+        - VITE_DASHSCOPE_API_KEY=${VITE_DASHSCOPE_API_KEY}
     # 仅在内部网络暴露端口，通过 Nginx 转发
     expose:
       - "3001"
