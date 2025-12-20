@@ -72,7 +72,7 @@ const MenuView: React.FC<MenuViewProps> = ({ items = [], onRemoveItem, onUpdateI
   if (selectedItem) {
     const expiryInfo = getExpiryInfo(selectedItem);
     return (
-      <div className="flex flex-col h-full bg-[#F2F2F7]">
+      <div className="flex flex-col h-full bg-light">
         <div className="glass-header px-4 py-3 sticky top-0 z-10 flex items-center justify-between">
           <button onClick={handleBack} className="text-black font-bold flex items-center">
             <i className="fa-solid fa-chevron-left mr-1"></i>
@@ -139,7 +139,7 @@ const MenuView: React.FC<MenuViewProps> = ({ items = [], onRemoveItem, onUpdateI
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#F2F2F7]">
+    <div className="flex flex-col h-full bg-light">
       <div className="px-4 pt-8 pb-32">
         <h1 className="text-3xl font-bold text-black mb-6">我的物品</h1>
 
@@ -193,7 +193,7 @@ const MenuView: React.FC<MenuViewProps> = ({ items = [], onRemoveItem, onUpdateI
       </div>
 
       {selectedScene && (
-        <div className="fixed inset-0 bg-[#F2F2F7] z-50 overflow-y-auto">
+        <div className="fixed inset-0 bg-light z-50 overflow-y-auto">
           <div className="glass-header px-4 py-3 sticky top-0 z-10 flex items-center">
             <button onClick={() => setSelectedScene(null)} className="text-black font-bold flex items-center">
               <i className="fa-solid fa-chevron-left mr-1"></i> 返回

@@ -244,15 +244,15 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#F2F2F7] relative">
-      <div className="px-6 py-4 pt-12 flex items-center justify-center fixed top-0 left-0 w-full z-50 bg-[#F2F2F7]/90 backdrop-blur-sm">
+    <div className="flex flex-col h-full bg-light relative">
+      <div className="px-6 py-4 pt-12 flex items-center justify-center fixed top-0 left-0 w-full z-50 bg-light/90 backdrop-blur-sm">
         <h1 className="text-xl font-bold text-black">记东西</h1>
       </div>
       
       <div className="flex-1 overflow-y-auto px-6 pt-32 pb-40 no-scrollbar">
 
         <div className="w-full bg-white rounded-3xl p-6 border border-gray-100 mb-6 shadow-sm">
-          <label className="text-sm font-bold text-blue-500 mb-3 block">
+          <label className="text-sm font-bold text-primary mb-3 block">
             <i className="fa-solid fa-location-dot mr-2"></i>
             这是哪里？
           </label>
@@ -282,8 +282,8 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
         <div className="w-full bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm relative mb-6">
           <img src={image || ''} className="w-full h-auto object-cover max-h-[50vh]" />
           {analyzing && (
-            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center text-blue-500">
-              <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-500 rounded-full animate-spin mb-4"></div>
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center text-primary">
+              <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
               <p className="text-lg font-bold animate-pulse">正在努力看清...</p>
             </div>
           )}
@@ -296,7 +296,7 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
 
         {!analyzing && (
           <div className="w-full bg-white rounded-3xl p-6 border border-gray-100">
-            <h3 className="text-sm font-bold text-purple-500 mb-4 block">
+            <h3 className="text-sm font-bold text-primary mb-4 block">
               <i className="fa-solid fa-wand-magic-sparkles mr-2"></i>
               我发现了这些
             </h3>
@@ -305,7 +305,7 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
                 <button 
                   key={idx} 
                   onClick={() => handleItemClick(idx)}
-                  className="bg-purple-50 text-purple-700 px-4 py-2 rounded-xl text-sm font-bold active:scale-95 transition-transform hover:bg-purple-100"
+                  className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-sm font-bold active:scale-95 transition-transform hover:bg-primary/20"
                 >
                   {it.itemName}
                 </button>
@@ -383,7 +383,7 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
               onChange={e => setEditingName(e.target.value)}
               placeholder="物品名称"
               autoFocus
-              className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-lg font-bold placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6"
+              className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-lg font-bold placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary mb-6"
               onKeyDown={e => {
                 if (e.key === 'Enter') handleSaveItem();
               }}
@@ -450,9 +450,9 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
                   setShowNewSpaceModal(true);
                   setShowSpaceSelector(false);
                 }}
-                className="w-full py-4 px-6 rounded-2xl text-left font-bold text-lg text-blue-500 bg-blue-50 hover:bg-blue-100 transition-all flex items-center gap-3 mt-4"
+                className="w-full py-4 px-6 rounded-2xl text-left font-bold text-lg text-primary bg-primary/10 hover:bg-primary/20 transition-all flex items-center gap-3 mt-4"
               >
-                <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm">
+                <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm">
                    <i className="fa-solid fa-plus"></i>
                 </div>
                 新建空间
@@ -473,7 +473,7 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
               onChange={e => setNewSpaceName(e.target.value)}
               placeholder="例如：书房、客厅..."
               autoFocus
-              className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-lg font-bold placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6"
+              className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-lg font-bold placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary mb-6"
               onKeyDown={e => {
                 if (e.key === 'Enter') handleCreateNewSpace();
               }}
@@ -488,7 +488,7 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
               <button 
                 onClick={handleCreateNewSpace}
                 disabled={!newSpaceName.trim()}
-                className="flex-1 py-3 bg-blue-500 text-white font-bold rounded-2xl active:scale-95 transition-all shadow-lg disabled:opacity-50"
+                className="flex-1 py-3 bg-primary text-white font-bold rounded-2xl active:scale-95 transition-all shadow-lg disabled:opacity-50"
               >
                 创建
               </button>

@@ -94,7 +94,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F2F2F7] flex flex-col relative overflow-hidden text-black">
+    <div className="min-h-screen bg-light flex flex-col relative overflow-hidden text-black">
       <button 
         onClick={() => setIsSidebarOpen(true)}
         className="fixed top-3 left-3 z-50 w-10 h-10 flex items-center justify-center text-black hover:opacity-70 transition-opacity hidden"
@@ -118,11 +118,11 @@ const App: React.FC = () => {
           <div className="relative w-full max-w-md animate-in slide-in-from-bottom duration-300">
             <div className="bg-white rounded-3xl overflow-hidden mb-3 shadow-2xl">
               <button onClick={() => openMediaSource(true)} className="w-full py-6 text-xl text-black font-bold active:bg-gray-50 transition-colors border-b border-gray-100 flex items-center justify-center gap-2">
-                <i className="fa-solid fa-camera text-blue-500"></i>
+                <i className="fa-solid fa-camera text-primary"></i>
                 拍一张
               </button>
               <button onClick={() => openMediaSource(false)} className="w-full py-6 text-xl text-black font-bold active:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                <i className="fa-solid fa-image text-purple-500"></i>
+                <i className="fa-solid fa-image text-primary"></i>
                 选一张
               </button>
             </div>

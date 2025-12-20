@@ -132,15 +132,15 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
   }, [initialQuery, onClearInitialQuery]);
 
   return (
-    <div className="flex flex-col h-full bg-[#F2F2F7] relative">
-      <div className="px-6 py-4 pt-12 flex items-center justify-center fixed top-0 left-0 w-full z-50 bg-[#F2F2F7]/90 backdrop-blur-sm">
+    <div className="flex flex-col h-full bg-light relative">
+      <div className="px-6 py-4 pt-12 flex items-center justify-center fixed top-0 left-0 w-full z-50 bg-light/90 backdrop-blur-sm">
         <h1 className="text-xl font-bold text-black">找东西</h1>
       </div>
       
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pt-32 pb-40 space-y-6 no-scrollbar">
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
-            <div className={`max-w-[85%] rounded-3xl px-5 py-4 text-lg shadow-sm font-medium ${msg.role === 'user' ? 'bg-blue-500 text-white rounded-br-sm' : 'bg-white text-black rounded-bl-sm border border-gray-100'}`}>
+            <div className={`max-w-[85%] rounded-3xl px-5 py-4 text-lg shadow-sm font-medium ${msg.role === 'user' ? 'bg-primary text-white rounded-br-sm' : 'bg-white text-black rounded-bl-sm border border-gray-100'}`}>
               {msg.content}
               {msg.modelName && (
                 <div className="mt-2 text-[10px] opacity-50 font-normal text-right border-t border-gray-200/20 pt-1">
@@ -150,10 +150,10 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
             </div>
             
             {msg.matches?.map((match, mIdx) => (
-              <div key={`${idx}-${mIdx}`} className="mt-4 w-full max-w-[95%] bg-white rounded-3xl border border-purple-100 shadow-xl overflow-hidden animate-in zoom-in-95 duration-500">
-                <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-purple-50/30">
+              <div key={`${idx}-${mIdx}`} className="mt-4 w-full max-w-[95%] bg-white rounded-3xl border border-primary/20 shadow-xl overflow-hidden animate-in zoom-in-95 duration-500">
+                <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-primary/5">
                   <span className="text-sm font-bold text-black flex items-center">
-                    <i className="fa-solid fa-location-dot mr-2 text-purple-500"></i>
+                    <i className="fa-solid fa-location-dot mr-2 text-primary"></i>
                     {match.scene.superCategory ? `${match.scene.superCategory} · ` : ''}{match.scene.locationCategory}
                   </span>
                   <span className="text-xs text-gray-400 font-medium">
@@ -172,14 +172,14 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
 
                 <div className="p-4 bg-white space-y-3">
                   {match.items.map((item, iIdx) => (
-                    <div key={iIdx} className="bg-purple-50 p-3 rounded-2xl border border-purple-100 flex gap-4">
+                    <div key={iIdx} className="bg-primary/5 p-3 rounded-2xl border border-primary/20 flex gap-4">
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-lg font-bold text-black truncate">{item.itemName}</span>
-                          <span className="text-[10px] bg-white text-purple-600 px-2 py-1 rounded-full font-bold uppercase flex-shrink-0 shadow-sm">{item.category}</span>
+                          <span className="text-[10px] bg-white text-primary px-2 py-1 rounded-full font-bold uppercase flex-shrink-0 shadow-sm">{item.category}</span>
                         </div>
                         <p className="text-sm text-gray-600 flex items-start leading-snug">
-                          <i className="fa-solid fa-map-pin mr-2 mt-1 text-purple-400 text-xs"></i>
+                          <i className="fa-solid fa-map-pin mr-2 mt-1 text-primary/60 text-xs"></i>
                           <span className="truncate"><strong className="text-black font-medium">{item.preciseLocation}</strong></span>
                         </p>
                       </div>
@@ -193,11 +193,11 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
         {loading && (
           <div className="flex items-center space-x-3 px-4 py-2">
             <div className="flex space-x-1.5">
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-              <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+              <div className="w-2 h-2 bg-secondary rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-secondary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+              <div className="w-2 h-2 bg-secondary rounded-full animate-bounce [animation-delay:-0.3s]"></div>
             </div>
-            <span className="text-blue-500 text-sm font-bold tracking-tight">正在帮你想...</span>
+            <span className="text-primary text-sm font-bold tracking-tight">正在帮你想...</span>
           </div>
         )}
         <div ref={messagesEndRef} />

@@ -13,7 +13,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, onCame
       <nav className="flex justify-around items-start pt-3 h-full max-w-lg mx-auto">
         <button 
           onClick={() => setActiveTab('chat')}
-          className={`flex flex-col items-center justify-start w-20 h-full transition-all active:scale-95 ${activeTab === 'chat' ? 'text-blue-500' : 'text-gray-300'}`}
+          className={`flex flex-col items-center justify-start w-20 h-full transition-all active:scale-95 ${activeTab === 'chat' ? 'text-primary' : 'text-gray-300'}`}
         >
           <i className={`fa-solid fa-magnifying-glass text-2xl mb-1 ${activeTab === 'chat' ? 'scale-110' : ''}`}></i>
           <span className="text-[10px] font-bold">找东西</span>
@@ -22,7 +22,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, onCame
         <div className="relative -top-6">
           <button 
             onClick={() => onCameraClick ? onCameraClick() : setActiveTab('storage')}
-            className="w-20 h-20 bg-black text-white rounded-2xl shadow-xl flex flex-col items-center justify-center active:scale-90 transition-all border-[4px] border-[#F2F2F7]"
+            className="w-20 h-20 bg-black text-white rounded-2xl shadow-xl flex flex-col items-center justify-center active:scale-90 transition-all border-[4px] border-light"
           >
             <i className="fa-solid fa-camera text-3xl mb-0.5"></i>
             <span className="text-[10px] font-bold">记东西</span>
@@ -31,7 +31,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, onCame
         
         <button 
           onClick={() => setActiveTab('gallery')}
-          className={`flex flex-col items-center justify-start w-20 h-full transition-all active:scale-95 ${activeTab === 'gallery' ? 'text-purple-500' : 'text-gray-300'}`}
+          className={`flex flex-col items-center justify-start w-20 h-full transition-all active:scale-95 ${activeTab === 'gallery' ? 'text-primary' : 'text-gray-300'}`}
         >
           <i className={`fa-solid fa-box-open text-2xl mb-1 ${activeTab === 'gallery' ? 'scale-110' : ''}`}></i>
           <span className="text-[10px] font-bold">百宝箱</span>

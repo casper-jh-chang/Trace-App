@@ -525,11 +525,11 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#F2F2F7] select-none">
+    <div className="flex flex-col h-full bg-light select-none">
       {/* Drag Avatar */}
       {isDragging && (
         <div 
-          className="fixed z-[150] pointer-events-none bg-white/90 backdrop-blur rounded-2xl p-4 shadow-2xl border-2 border-blue-500 transform -translate-x-1/2 -translate-y-1/2 flex items-center gap-3"
+          className="fixed z-[150] pointer-events-none bg-white/90 backdrop-blur rounded-2xl p-4 shadow-2xl border-2 border-primary transform -translate-x-1/2 -translate-y-1/2 flex items-center gap-3"
           style={{ left: dragPosition.x, top: dragPosition.y }}
         >
            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -537,7 +537,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
            </div>
            <div>
              <p className="font-bold text-black text-sm">移动 {selectedIds.size} 个角落</p>
-             <p className="text-xs text-blue-500 font-bold">{dropTarget ? `松手移动到: ${dropTarget}` : '拖动到空间分类...'}</p>
+             <p className="text-xs text-primary font-bold">{dropTarget ? `松手移动到: ${dropTarget}` : '拖动到空间分类...'}</p>
            </div>
         </div>
       )}
@@ -587,7 +587,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
                value={newCategoryName}
                onChange={(e) => setNewCategoryName(e.target.value)}
                placeholder="例如：书房、客厅..."
-               className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-black font-bold outline-none focus:ring-2 focus:ring-blue-500"
+               className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-black font-bold outline-none focus:ring-2 focus:ring-primary"
                onKeyDown={(e) => {
                    if (e.key === 'Enter') {
                        handleCreateCategory(newCategoryName);
@@ -596,7 +596,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
              />
              <button 
                 onClick={() => handleCreateCategory(newCategoryName)}
-                className="bg-blue-500 text-white px-6 rounded-xl font-bold active:scale-95 transition-all"
+                className="bg-primary text-white px-6 rounded-xl font-bold active:scale-95 transition-all"
              >
                确定
              </button>
@@ -624,7 +624,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
               <div 
                 key={category} 
                 data-category={category} 
-                className={`animate-in fade-in slide-in-from-bottom-4 duration-500 transition-all rounded-3xl ${dropTarget === category ? 'bg-blue-50 ring-4 ring-blue-500/20 p-2 -mx-2' : ''} ${draggingCategory === category ? 'opacity-40' : ''}`}
+                className={`animate-in fade-in slide-in-from-bottom-4 duration-500 transition-all rounded-3xl ${dropTarget === category ? 'bg-primary/10 ring-4 ring-primary/20 p-2 -mx-2' : ''} ${draggingCategory === category ? 'opacity-40' : ''}`}
                 onDragOver={(e) => handleCategoryDragOver(e, category)}
               >
                 <div className="flex items-center justify-between mb-3">
@@ -691,7 +691,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
             {Object.entries(groupedScenes.groups)
                 .filter(([cat]) => !existingCategories.includes(cat))
                 .map(([category, groupScenes]) => (
-              <div key={category} data-category={category} className={`animate-in fade-in slide-in-from-bottom-4 duration-500 transition-all rounded-3xl ${dropTarget === category ? 'bg-blue-50 ring-4 ring-blue-500/20 p-2 -mx-2' : ''}`}>
+              <div key={category} data-category={category} className={`animate-in fade-in slide-in-from-bottom-4 duration-500 transition-all rounded-3xl ${dropTarget === category ? 'bg-primary/10 ring-4 ring-primary/20 p-2 -mx-2' : ''}`}>
                 <div className="flex items-center justify-between mb-3">
                     <div 
                         className="flex items-center gap-2 cursor-pointer active:opacity-70 transition-opacity select-none"
@@ -811,7 +811,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
               <select 
                 value={batchMoveTarget} 
                 onChange={e => setBatchMoveTarget(e.target.value)}
-                className="w-full bg-gray-50 rounded-xl px-4 py-3 text-black font-bold outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                className="w-full bg-gray-50 rounded-xl px-4 py-3 text-black font-bold outline-none focus:ring-2 focus:ring-primary appearance-none"
               >
                 <option value="">选择目标空间...</option>
                 {allCategories.map(c => (
@@ -821,7 +821,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
               <button 
                 onClick={handleBatchMove}
                 disabled={!batchMoveTarget}
-                className="w-full bg-blue-500 text-white py-3 rounded-xl font-bold disabled:opacity-50 active:scale-95 transition-all"
+                className="w-full bg-primary text-white py-3 rounded-xl font-bold disabled:opacity-50 active:scale-95 transition-all"
               >
                 确认移动
               </button>
@@ -855,12 +855,12 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
                     value={renameInput}
                     onChange={e => setRenameInput(e.target.value)}
                     placeholder={managingCategory}
-                    className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-black font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-black font-bold outline-none focus:ring-2 focus:ring-primary"
                   />
                   <button 
                     onClick={handleRename}
                     disabled={!renameInput.trim() || renameInput.trim() === managingCategory}
-                    className="bg-blue-500 text-white px-4 rounded-xl font-bold disabled:opacity-50 active:scale-95 transition-all"
+                    className="bg-primary text-white px-4 rounded-xl font-bold disabled:opacity-50 active:scale-95 transition-all"
                   >
                     保存
                   </button>
@@ -874,7 +874,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
                   <select 
                     value={mergeTarget} 
                     onChange={e => setMergeTarget(e.target.value)}
-                    className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-black font-bold outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+                    className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-black font-bold outline-none focus:ring-2 focus:ring-primary appearance-none"
                   >
                     <option value="">选择目标空间...</option>
                     {allCategories.filter(c => c !== managingCategory).map(c => (
@@ -884,7 +884,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
                   <button 
                     onClick={handleMerge}
                     disabled={!mergeTarget}
-                    className="bg-blue-500 text-white px-4 rounded-xl font-bold disabled:opacity-50 active:scale-95 transition-all"
+                    className="bg-primary text-white px-4 rounded-xl font-bold disabled:opacity-50 active:scale-95 transition-all"
                   >
                     合并
                   </button>
@@ -982,7 +982,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
                             e.currentTarget.blur();
                           }
                         }}
-                        className="text-2xl font-bold text-black mb-1 w-full border-b-2 border-blue-500 outline-none bg-transparent"
+                        className="text-2xl font-bold text-black mb-1 w-full border-b-2 border-primary outline-none bg-transparent"
                       />
                     ) : (
                       <h2 
@@ -1053,12 +1053,12 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
                         onKeyDown={e => {
                           if (e.key === 'Enter') handleUpdateItemName(idx, editingItemName);
                         }}
-                        className="bg-white border-2 border-blue-500 text-black px-3 py-1.5 rounded-xl text-sm font-bold outline-none w-32"
+                        className="bg-white border-2 border-primary text-black px-3 py-1.5 rounded-xl text-sm font-bold outline-none w-32"
                       />
                     ) : (
                       <span 
                         key={idx} 
-                        className="group relative bg-purple-50 text-purple-700 px-3 py-1.5 rounded-xl text-sm font-bold cursor-pointer hover:bg-purple-100 transition-colors pr-8"
+                        className="group relative bg-primary/10 text-primary px-3 py-1.5 rounded-xl text-sm font-bold cursor-pointer hover:bg-primary/20 transition-colors pr-8"
                         onClick={() => {
                           setEditingItemIndex(idx);
                           setEditingItemName(it.itemName);
@@ -1070,7 +1070,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
                             e.stopPropagation();
                             handleDeleteItem(idx);
                           }}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-purple-200 text-purple-700 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-primary/20 text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white"
                         >
                           <i className="fa-solid fa-xmark text-[10px]"></i>
                         </button>
@@ -1096,7 +1096,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
                       onKeyDown={e => {
                         if (e.key === 'Enter') handleAddItem();
                       }}
-                      className="bg-white border-2 border-gray-200 text-black px-3 py-1.5 rounded-xl text-sm font-bold outline-none w-32 focus:border-blue-500"
+                      className="bg-white border-2 border-gray-200 text-black px-3 py-1.5 rounded-xl text-sm font-bold outline-none w-32 focus:border-primary"
                     />
                   ) : (
                     <button 
@@ -1153,10 +1153,10 @@ const SceneCard: React.FC<{
       onTouchStart={handleStart}
       onTouchEnd={handleEnd}
       onTouchMove={handleEnd}
-      className={`relative bg-white rounded-3xl overflow-hidden border shadow-sm active:scale-95 transition-all select-none ${isSelected ? 'border-blue-500 ring-2 ring-blue-500 ring-offset-2' : 'border-gray-100'}`}
+      className={`relative bg-white rounded-3xl overflow-hidden border shadow-sm active:scale-95 transition-all select-none ${isSelected ? 'border-primary ring-2 ring-primary ring-offset-2' : 'border-gray-100'}`}
     >
       {isSelectionMode && (
-        <div className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center z-10 ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-white/50 border-white'}`}>
+        <div className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center z-10 ${isSelected ? 'bg-primary border-primary' : 'bg-white/50 border-white'}`}>
           {isSelected && <i className="fa-solid fa-check text-white text-xs"></i>}
         </div>
       )}
@@ -1164,7 +1164,7 @@ const SceneCard: React.FC<{
         <img src={scene.fullImageUrl} className="w-full h-full object-cover pointer-events-none" draggable={false} alt={scene.locationCategory} />
         {/* Overlay when selected in selection mode */}
         {isSelectionMode && isSelected && (
-          <div className="absolute inset-0 bg-blue-500/20"></div>
+          <div className="absolute inset-0 bg-primary/20"></div>
         )}
       </div>
       <div className="p-4">

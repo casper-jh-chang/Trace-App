@@ -91,7 +91,7 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartChat, onStartCamera, onOpenM
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-[#F2F2F7] overflow-hidden">
+    <div className="flex flex-col h-screen w-full bg-light overflow-hidden">
       <div className="pt-16 pb-8 px-8 flex flex-col items-center animate-in slide-in-from-top duration-500">
         <h1 className="text-4xl font-bold text-black tracking-tight mb-2">抽屉</h1>
         <p className="text-gray-500 text-sm font-medium bg-white px-4 py-1 rounded-full shadow-sm">你的收纳小帮手</p>
@@ -102,7 +102,7 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartChat, onStartCamera, onOpenM
         {/* Big Search Card */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col gap-4 animate-in zoom-in-95 duration-500 delay-100">
            <div className="flex items-center gap-3 mb-2">
-             <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
+             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                <i className="fa-solid fa-magnifying-glass text-lg"></i>
              </div>
              <h2 className="text-xl font-bold text-black">找东西</h2>
@@ -118,7 +118,7 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartChat, onStartCamera, onOpenM
                onTouchCancel={(e) => stopListening(e)}
                onContextMenu={(e) => e.preventDefault()}
                style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }}
-               className={`h-32 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all touch-none ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-blue-500 text-white active:scale-95'}`}
+               className={`h-32 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all touch-none ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-primary text-white active:scale-95'}`}
              >
                <i className={`fa-solid ${isListening ? 'fa-microphone-lines' : 'fa-microphone'} text-3xl`}></i>
                <span className="font-bold text-lg">{isListening ? '正在听...' : '按住说话'}</span>
@@ -140,7 +140,7 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartChat, onStartCamera, onOpenM
           className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between group active:scale-95 transition-all animate-in zoom-in-95 duration-500 delay-200"
         >
            <div className="flex flex-col items-start gap-1">
-             <h2 className="text-xl font-bold text-black group-hover:text-blue-500 transition-colors">记东西</h2>
+             <h2 className="text-xl font-bold text-black group-hover:text-primary transition-colors">记东西</h2>
              <p className="text-sm text-gray-400 font-medium">拍张照，我帮你记</p>
            </div>
            <div className="w-16 h-16 rounded-2xl bg-black text-white flex items-center justify-center shadow-lg group-active:scale-90 transition-transform">
@@ -154,10 +154,10 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartChat, onStartCamera, onOpenM
           className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between group active:scale-95 transition-all animate-in zoom-in-95 duration-500 delay-300"
         >
            <div className="flex flex-col items-start gap-1">
-             <h2 className="text-xl font-bold text-black group-hover:text-purple-500 transition-colors">百宝箱</h2>
+             <h2 className="text-xl font-bold text-black group-hover:text-primary transition-colors">百宝箱</h2>
              <p className="text-sm text-gray-400 font-medium">看看我都存了啥</p>
            </div>
-           <div className="w-16 h-16 rounded-2xl bg-purple-50 text-purple-500 flex items-center justify-center border border-purple-100 group-active:scale-90 transition-transform">
+           <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 group-active:scale-90 transition-transform">
              <i className="fa-solid fa-box-open text-2xl"></i>
            </div>
         </button>

@@ -37,7 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, currentModel, onSele
                 onClick={() => onSelectModel('qwen')}
                 className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${
                   currentModel === 'qwen' 
-                    ? 'bg-blue-500 text-white shadow-md' 
+                    ? 'bg-primary text-white shadow-md' 
                     : 'text-gray-400 hover:text-black hover:bg-transparent'
                 }`}
               >
@@ -47,7 +47,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, currentModel, onSele
                 onClick={() => onSelectModel('gemini')}
                 className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${
                   currentModel === 'gemini' 
-                    ? 'bg-purple-500 text-white shadow-md' 
+                    ? 'bg-secondary text-white shadow-md' 
                     : 'text-gray-400 hover:text-black hover:bg-transparent'
                 }`}
               >
