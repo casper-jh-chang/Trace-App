@@ -41,6 +41,8 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
   const [showBatchMove, setShowBatchMove] = useState(false);
   const [batchMoveTarget, setBatchMoveTarget] = useState('');
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   // Item Management State
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [editingItemName, setEditingItemName] = useState('');
@@ -562,7 +564,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
               }}
               className={`px-4 h-10 rounded-full font-bold text-sm transition-all ${isSelectionMode ? 'bg-black text-white' : 'bg-white text-black'}`}
             >
-              {isSelectionMode ? '完成' : '选择'}
+              {isSelectionMode ? '完成' : '多选'}
             </button>
             {!isSelectionMode && (
               <button 
@@ -909,26 +911,56 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
 
       {/* 详情模态框 */}
       {selectedScene && (
-        <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm animate-in fade-in duration-300 flex flex-col">
-          <div className="flex items-center justify-between px-6 pt-12 pb-6">
+        <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm animate-in fade-in duration-300 flex items-center justify-center p-4">
+          {/* Floating Buttons */}
+          {/* Delete Confirmation Modal */}
+          {showDeleteConfirm && (
+            <div className="fixed inset-0 z-[130] bg-black/50 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in duration-200">
+              <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4 mx-auto">
+                  <i className="fa-solid fa-triangle-exclamation text-red-500 text-xl"></i>
+                </div>
+                <h3 className="text-xl font-bold text-black mb-2 text-center">确认删除?</h3>
+                <p className="text-gray-500 mb-8 text-center text-sm">删除后无法恢复，确定要删除这个角落吗？</p>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="flex-1 py-3.5 rounded-2xl bg-gray-100 text-gray-700 font-bold active:scale-95 transition-transform"
+                  >
+                    取消
+                  </button>
+                  <button 
+                    onClick={() => {
+                      onDelete(selectedScene.id);
+                      setShowDeleteConfirm(false);
+                      setSelectedScene(null);
+                    }}
+                    className="flex-1 py-3.5 rounded-2xl bg-red-500 text-white font-bold shadow-lg shadow-red-500/30 active:scale-95 transition-transform"
+                  >
+                    删除
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl max-h-[80vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 relative group">
+            {/* Floating Buttons inside card */}
             <button 
               onClick={() => { setSelectedScene(null); setIsEditingName(false); }} 
-              className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white active:bg-white/20 transition-all"
+              className="absolute top-4 left-4 z-[120] w-10 h-10 bg-black/20 backdrop-blur-md rounded-full flex items-center justify-center text-white active:bg-black/40 transition-all border border-white/10 shadow-lg"
             >
-              <i className="fa-solid fa-chevron-left text-xl"></i>
+              <i className="fa-solid fa-chevron-left text-lg"></i>
             </button>
             
             <button 
-              onClick={(e) => { e.stopPropagation(); onDelete(selectedScene.id); setSelectedScene(null); }} 
-              className="w-12 h-12 bg-red-500/20 backdrop-blur-md rounded-full flex items-center justify-center text-red-500 active:bg-red-500/30 transition-all"
+              onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }} 
+              className="absolute top-4 right-4 z-[120] w-10 h-10 bg-red-500/80 backdrop-blur-md rounded-full flex items-center justify-center text-white active:bg-red-600 transition-all shadow-lg border border-white/10"
             >
-              <i className="fa-solid fa-trash-can text-xl"></i>
+              <i className="fa-solid fa-trash-can text-lg"></i>
             </button>
-          </div>
 
-          <div className="flex-1 overflow-y-auto">
-            <div className="min-h-full flex items-center justify-center p-6">
-              <div className="w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl">
+            <div className="overflow-y-auto flex-1 overscroll-contain [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
               <img src={selectedScene.fullImageUrl} className="w-full h-auto pointer-events-none" draggable={false} />
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
@@ -1075,11 +1107,10 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
                       添加
                     </button>
                   )}
-                </div>
               </div>
             </div>
-            </div>
           </div>
+        </div>
         </div>
       )}
     </div>

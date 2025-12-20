@@ -11,29 +11,76 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartChat, onStartCamera, onOpenM
   const [query, setQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
 
-  const startListening = () => {
+  const startListening = (e?: React.MouseEvent | React.TouchEvent) => {
+    // Prevent default behavior to avoid text selection or other issues
+    if (e && e.cancelable) {
+        e.preventDefault();
+    }
+    
+    // If already listening, do nothing
+    if (isListening) return;
+
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("您的浏览器不支持语音识别功能。");
+      alert("您的浏览器不支持语音识别功能。请尝试使用Chrome或Safari浏览器。");
       return;
     }
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'zh-CN';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'zh-CN';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+      // Continuous is important for long press logic
+      recognition.continuous = true;
 
-    recognition.onstart = () => setIsListening(true);
-    recognition.onend = () => setIsListening(false);
-    recognition.onerror = () => setIsListening(false);
-    
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setQuery(transcript);
-      setTimeout(() => onStartChat(transcript), 600);
-    };
+      recognition.onstart = () => {
+        console.log('Voice recognition started');
+        setIsListening(true);
+      };
+      
+      recognition.onend = () => {
+        console.log('Voice recognition ended');
+        setIsListening(false);
+      };
+      
+      recognition.onerror = (event: any) => {
+        console.error('Voice recognition error', event.error);
+        setIsListening(false);
+        if (event.error === 'not-allowed') {
+            alert('无法访问麦克风。请检查权限设置，或确保您正在使用 HTTPS / Localhost 访问。');
+        } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
+            alert('语音识别出错: ' + event.error);
+        }
+      };
+      
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[event.results.length - 1][0].transcript;
+        console.log('Transcript:', transcript);
+        if (transcript.trim()) {
+           setQuery(transcript);
+           setTimeout(() => onStartChat(transcript), 600);
+        }
+      };
 
-    recognition.start();
+      recognition.start();
+      (window as any).currentRecognition = recognition;
+    } catch (err) {
+      console.error('Failed to start recognition', err);
+      setIsListening(false);
+    }
+  };
+
+  const stopListening = (e?: React.MouseEvent | React.TouchEvent) => {
+      if (e && e.cancelable) {
+          e.preventDefault();
+      }
+      console.log('Stopping voice recognition...');
+      const recognition = (window as any).currentRecognition;
+      if (recognition) {
+          recognition.stop();
+          // Don't set isListening to false here immediately, wait for onend
+      }
   };
 
   const handleSubmit = (e?: React.FormEvent) => {
@@ -63,8 +110,15 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartChat, onStartCamera, onOpenM
            
            <div className="grid grid-cols-2 gap-3">
              <button 
-               onClick={startListening}
-               className={`h-32 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-blue-500 text-white active:scale-95'}`}
+               onMouseDown={(e) => startListening(e)}
+               onMouseUp={(e) => stopListening(e)}
+               onMouseLeave={(e) => isListening && stopListening(e)}
+               onTouchStart={(e) => startListening(e)}
+               onTouchEnd={(e) => stopListening(e)}
+               onTouchCancel={(e) => stopListening(e)}
+               onContextMenu={(e) => e.preventDefault()}
+               style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }}
+               className={`h-32 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all touch-none ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-blue-500 text-white active:scale-95'}`}
              >
                <i className={`fa-solid ${isListening ? 'fa-microphone-lines' : 'fa-microphone'} text-3xl`}></i>
                <span className="font-bold text-lg">{isListening ? '正在听...' : '按住说话'}</span>
