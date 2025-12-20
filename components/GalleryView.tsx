@@ -433,7 +433,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
     if (!selectedScene || editingItemIndex === null || !editingItemName.trim()) return;
     
     const updatedItems = [...selectedScene.items];
-    const shelfLife = editingShelfLife ? parseInt(editingShelfLife) : undefined;
+    const shelfLife = editingIsPerishable && editingShelfLife ? parseInt(editingShelfLife) : undefined;
     
     updatedItems[editingItemIndex] = { 
         ...updatedItems[editingItemIndex], 
@@ -616,6 +616,17 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
                      placeholder="多少天后过期？"
                      className="w-full bg-white border-none rounded-xl px-4 py-3 text-base font-bold placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary"
                    />
+                   <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar pb-1">
+                     {[3, 7, 15, 30, 90, 180, 365].map(days => (
+                       <button
+                         key={days}
+                         onClick={() => setEditingShelfLife(days.toString())}
+                         className="px-3 py-1 bg-white rounded-lg text-xs font-bold text-gray-500 hover:bg-gray-100 hover:text-primary whitespace-nowrap border border-gray-100"
+                       >
+                         {days}天
+                       </button>
+                     ))}
+                   </div>
                  </div>
                )}
              </div>
@@ -1156,7 +1167,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
                       >
                         {it.isPerishable && <i className="fa-solid fa-clock mr-1.5 text-xs opacity-70"></i>}
                         {it.itemName}
-                        {it.shelfLifeDays && <span className="ml-1 opacity-70 text-xs">({it.shelfLifeDays}天)</span>}
+                        {it.isPerishable && it.shelfLifeDays && <span className="ml-1 opacity-70 text-xs">({it.shelfLifeDays}天)</span>}
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();

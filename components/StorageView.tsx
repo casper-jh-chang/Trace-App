@@ -202,24 +202,36 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
   };
 
   const handleItemClick = (index: number) => {
+    const item = detectedItems[index];
     setEditingIndex(index);
-    setEditingName(detectedItems[index].itemName);
+    setEditingName(item.itemName);
+    setEditingIsPerishable(item.isPerishable || false);
+    setEditingShelfLife(item.shelfLifeDays ? item.shelfLifeDays.toString() : '');
     setItemModalOpen(true);
   };
 
   const handleAddClick = () => {
     setEditingIndex(null);
     setEditingName('');
+    setEditingIsPerishable(false);
+    setEditingShelfLife('');
     setItemModalOpen(true);
   };
 
   const handleSaveItem = () => {
     if (!editingName.trim()) return;
     
+    const shelfLife = editingIsPerishable && editingShelfLife ? parseInt(editingShelfLife) : undefined;
+
     if (editingIndex !== null) {
       // Edit
       const newItems = [...detectedItems];
-      newItems[editingIndex] = { ...newItems[editingIndex], itemName: editingName.trim() };
+      newItems[editingIndex] = { 
+        ...newItems[editingIndex], 
+        itemName: editingName.trim(),
+        isPerishable: editingIsPerishable,
+        shelfLifeDays: shelfLife
+      };
       setDetectedItems(newItems);
     } else {
       // Add
@@ -229,7 +241,9 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
         scene: SceneType.OTHER,
         preciseLocation: batchLocation || '未命名位置',
         remarks: '',
-        box_2d: [0, 0, 0, 0]
+        box_2d: [0, 0, 0, 0],
+        isPerishable: editingIsPerishable,
+        shelfLifeDays: shelfLife
       };
       setDetectedItems([...detectedItems, newItem]);
     }
@@ -391,11 +405,47 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
               onChange={e => setEditingName(e.target.value)}
               placeholder="物品名称"
               autoFocus
-              className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-lg font-bold placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary mb-6"
+              className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-lg font-bold placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary mb-4"
               onKeyDown={e => {
                 if (e.key === 'Enter') handleSaveItem();
               }}
             />
+
+            <div className="bg-gray-50 rounded-2xl p-4 mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-bold text-gray-500 text-sm">会有保质期吗？</span>
+                <button 
+                  onClick={() => setEditingIsPerishable(!editingIsPerishable)}
+                  className={`w-12 h-7 rounded-full transition-colors relative ${editingIsPerishable ? 'bg-primary' : 'bg-gray-300'}`}
+                >
+                  <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-all ${editingIsPerishable ? 'left-6' : 'left-1'}`} />
+                </button>
+              </div>
+
+               {editingIsPerishable && (
+                 <div className="animate-in slide-in-from-top-2 duration-200">
+                   <div className="text-xs text-gray-400 font-bold mb-1 ml-1">保质期（天）</div>
+                   <input 
+                     type="number" 
+                     value={editingShelfLife}
+                     onChange={e => setEditingShelfLife(e.target.value)}
+                     placeholder="多少天后过期？"
+                     className="w-full bg-white border-none rounded-xl px-4 py-3 text-base font-bold placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary"
+                   />
+                   <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar pb-1">
+                     {[3, 7, 15, 30, 90, 180, 365].map(days => (
+                       <button
+                         key={days}
+                         onClick={() => setEditingShelfLife(days.toString())}
+                         className="px-3 py-1 bg-white rounded-lg text-xs font-bold text-gray-500 hover:bg-gray-100 hover:text-primary whitespace-nowrap border border-gray-100"
+                       >
+                         {days}天
+                       </button>
+                     ))}
+                   </div>
+                 </div>
+               )}
+            </div>
             
             <div className="flex gap-3">
               {editingIndex !== null && (
