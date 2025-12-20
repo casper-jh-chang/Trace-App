@@ -203,7 +203,12 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
                 </div>
                 
                 <div className="relative w-full bg-gray-100 overflow-hidden">
-                  <img src={match.scene.fullImageUrl} className="w-full h-auto block" alt="Search result" />
+                  <img 
+                    src={match.scene.fullImageUrl} 
+                    className="w-full h-auto block" 
+                    alt="Search result" 
+                    onLoad={scrollToBottom}
+                  />
                 </div>
 
                 <div className="p-4 bg-white space-y-3">
