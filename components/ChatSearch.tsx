@@ -22,51 +22,6 @@ interface ExtendedChatMessage extends ChatMessage {
   modelName?: string;
 }
 
-const CroppedImage = ({ src, box2d, alt }: { src: string, box2d: number[], alt: string }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = src;
-    
-    img.onload = () => {
-        const [xmin, ymin, xmax, ymax] = box2d;
-        // box2d is 0-1000 normalized
-        const w = img.naturalWidth;
-        const h = img.naturalHeight;
-        
-        const x = (xmin / 1000) * w;
-        const y = (ymin / 1000) * h;
-        const width = ((xmax - xmin) / 1000) * w;
-        const height = ((ymax - ymin) / 1000) * h;
-        
-        // Add some padding (optional, e.g. 10%)
-        const padX = width * 0.1;
-        const padY = height * 0.1;
-        
-        // Clamp to image boundaries
-        const sx = Math.max(0, x - padX);
-        const sy = Math.max(0, y - padY);
-        const sWidth = Math.min(w - sx, width + 2 * padX);
-        const sHeight = Math.min(h - sy, height + 2 * padY);
-
-        canvas.width = sWidth;
-        canvas.height = sHeight;
-        
-        ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
-    };
-  }, [src, box2d]);
-
-  return <canvas ref={canvasRef} className="w-28 h-28 object-contain bg-white rounded-xl border-2 border-purple-100 flex-shrink-0 shadow-sm" />;
-};
-
 const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStartLive, onLiveEnd, onClearInitialQuery }) => {
   const [messages, setMessages] = useState<ExtendedChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -214,7 +169,6 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
                 <div className="p-4 bg-white space-y-3">
                   {match.items.map((item, iIdx) => (
                     <div key={iIdx} className="bg-purple-50 p-3 rounded-2xl border border-purple-100 flex gap-4">
-                      <CroppedImage src={match.scene.fullImageUrl} box2d={item.box_2d} alt={item.itemName} />
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-lg font-bold text-black truncate">{item.itemName}</span>
