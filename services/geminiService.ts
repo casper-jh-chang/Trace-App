@@ -3,7 +3,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AIAnalysisResult, SceneRecord, ChatMessage, SceneType } from "../types";
 
 export const analyzeImage = async (base64Image: string): Promise<AIAnalysisResult> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+  const ai = new GoogleGenAI({ apiKey });
   const MAX_REPETITIONS = 4;
 
   const scanTask = async () => {
@@ -68,7 +69,8 @@ export const queryInventory = async (
   scenes: SceneRecord[],
   chatHistory: ChatMessage[]
 ): Promise<ChatAIResponse> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
+  const ai = new GoogleGenAI({ apiKey });
 
   const memoryContext = scenes.length > 0
     ? scenes.map(s => `[场景ID:${s.id}, 位置:${s.locationCategory}] 包含物品: ${s.items.map(i => i.itemName).join(', ')}`).join('\n')

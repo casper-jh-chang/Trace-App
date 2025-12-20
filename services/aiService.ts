@@ -35,10 +35,16 @@ export const queryInventory = async (
   query: string,
   scenes: SceneRecord[],
   chatHistory: ChatMessage[]
-): Promise<any> => {
+): Promise<ChatAIResponse> => {
+  let response;
   if (currentModel === 'qwen') {
-    return queryInventoryQwen(query, scenes, chatHistory);
+    response = await queryInventoryQwen(query, scenes, chatHistory);
   } else {
-    return queryInventoryGemini(query, scenes, chatHistory);
+    response = await queryInventoryGemini(query, scenes, chatHistory);
   }
+
+  return {
+    ...response,
+    modelName: currentModel === 'qwen' ? '通义千问 (Qwen)' : 'Gemini 3 Flash'
+  };
 };

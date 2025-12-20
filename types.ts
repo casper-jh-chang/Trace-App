@@ -55,4 +55,5 @@ export interface ChatAIResponse {
     itemName: string;
     box_2d?: number[]; // [xmin, ymin, xmax, ymax] 0-1000 normalized
   }[];
+  modelName?: string;
 }
