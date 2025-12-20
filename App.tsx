@@ -6,12 +6,13 @@ import StorageView from './components/StorageView';
 import MenuView from './components/MenuView';
 import ChatSearch from './components/ChatSearch';
 import Sidebar from './components/Sidebar';
+import PosterView from './components/PosterView';
 import { StorageItem, SceneType } from './types';
 
 const STORAGE_KEY = 'smart_organize_items_v2';
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'home' | 'storage' | 'menu' | 'chat'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'storage' | 'menu' | 'chat' | 'poster'>('home');
   const [items, setItems] = useState<StorageItem[]>([]);
   const [initialChatQuery, setInitialChatQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -21,6 +22,7 @@ const App: React.FC = () => {
   const [pendingImage, setPendingImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 1. 安全加载
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -28,15 +30,27 @@ const App: React.FC = () => {
         setItems(JSON.parse(saved));
       } catch (e) {
         console.error("Failed to load items", e);
+        setItems([]);
       }
     }
   }, []);
 
+  // 2. 安全存储：防止 QuotaExceededError 导致白屏
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    if (items.length > 0) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      } catch (e) {
+        console.error("Storage failed", e);
+        if (e instanceof Error && e.name === 'QuotaExceededError') {
+          alert("存储空间已满！请删除一些旧的收纳记录以释放空间。");
+        }
+      }
+    }
   }, [items]);
 
   const itemsCountByScene = useMemo(() => {
+    if (!items) return {};
     return items.reduce((acc, item) => {
       acc[item.scene] = (acc[item.scene] || 0) + 1;
       return acc;
@@ -44,7 +58,7 @@ const App: React.FC = () => {
   }, [items]);
 
   const handleAddItems = (newItems: StorageItem[]) => {
-    setItems(prev => [...newItems, ...prev]);
+    setItems(prev => [...newItems, ...(prev || [])]);
     const uniqueScenes = Array.from(new Set(newItems.map(item => item.scene)));
     if (uniqueScenes.length === 1) {
       setPreselectedScene(uniqueScenes[0]);
@@ -97,7 +111,6 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F2F2F7] flex flex-col relative overflow-hidden text-black">
-      {/* Top Menu Icon */}
       <button 
         onClick={() => setIsSidebarOpen(true)}
         className="absolute top-12 left-6 z-50 text-black hover:opacity-70 transition-opacity"
@@ -110,9 +123,9 @@ const App: React.FC = () => {
         onClose={() => setIsSidebarOpen(false)} 
         onSelectScene={handleSelectSceneFromSidebar}
         itemsCountByScene={itemsCountByScene}
+        onOpenPoster={() => { setActiveTab('poster'); setIsSidebarOpen(false); }}
       />
 
-      {/* iOS Action Sheet Style Modal */}
       {isMediaModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center px-4 pb-8">
           <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setIsMediaModalOpen(false)}></div>
@@ -181,6 +194,17 @@ const App: React.FC = () => {
               <i className="fa-solid fa-house text-xl"></i>
             </button>
             <ChatSearch inventory={items} initialQuery={initialChatQuery} />
+          </div>
+        )}
+        {activeTab === 'poster' && (
+          <div className="h-full overflow-y-auto pt-12">
+            <button 
+              onClick={() => setActiveTab('home')}
+              className="absolute top-12 right-6 z-50 text-black"
+            >
+              <i className="fa-solid fa-house text-xl"></i>
+            </button>
+            <PosterView />
           </div>
         )}
       </main>

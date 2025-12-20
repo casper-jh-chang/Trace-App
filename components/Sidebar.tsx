@@ -7,9 +7,10 @@ interface SidebarProps {
   onClose: () => void;
   onSelectScene: (scene: SceneType) => void;
   itemsCountByScene: Record<string, number>;
+  onOpenPoster?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onSelectScene, itemsCountByScene }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onSelectScene, itemsCountByScene, onOpenPoster }) => {
   const getSceneIcon = (scene: SceneType) => {
     switch (scene) {
       case SceneType.KITCHEN: return 'fa-utensils';
@@ -55,6 +56,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onSelectScene, items
         </div>
 
         <div className="p-6 border-t border-gray-100">
+          <button 
+            onClick={onOpenPoster}
+            className="w-full flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors mb-4"
+          >
+            <i className="fa-solid fa-wand-magic-sparkles text-black mr-3"></i>
+            <span className="font-bold text-sm">生成宣传海报</span>
+          </button>
           <div className="bg-[#F2F2F7] rounded-xl p-4">
             <p className="text-[11px] font-bold text-gray-400 uppercase mb-1">智能收纳</p>
             <p className="text-[13px] text-gray-600 leading-snug font-medium">您可以随时通过拍摄照片来更新清单中的物品。</p>

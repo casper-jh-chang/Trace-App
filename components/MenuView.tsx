@@ -8,7 +8,7 @@ interface MenuViewProps {
   initialScene?: SceneType | null;
 }
 
-const MenuView: React.FC<MenuViewProps> = ({ items, onRemoveItem, initialScene }) => {
+const MenuView: React.FC<MenuViewProps> = ({ items = [], onRemoveItem, initialScene }) => {
   const [selectedScene, setSelectedScene] = useState<SceneType | null>(null);
   const [selectedItem, setSelectedItem] = useState<StorageItem | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,17 +22,20 @@ const MenuView: React.FC<MenuViewProps> = ({ items, onRemoveItem, initialScene }
 
   const sceneStats = Object.values(SceneType).map(scene => ({
     type: scene,
-    count: items.filter(i => i.scene === scene).length
+    count: (items || []).filter(i => i.scene === scene).length
   }));
 
-  const filteredItems = items
+  const filteredItems = (items || [])
     .filter(item => {
       const matchesScene = !selectedScene || item.scene === selectedScene;
-      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            item.locationDetail.toLowerCase().includes(searchQuery.toLowerCase());
+      const name = (item.name || '').toLowerCase();
+      const loc = (item.locationDetail || '').toLowerCase();
+      const search = (searchQuery || '').toLowerCase();
+      
+      const matchesSearch = name.includes(search) || loc.includes(search);
       return matchesScene && matchesSearch;
     })
-    .sort((a, b) => b.timestamp - a.timestamp);
+    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
   const handleBack = () => {
     if (selectedItem) {
@@ -74,11 +77,11 @@ const MenuView: React.FC<MenuViewProps> = ({ items, onRemoveItem, initialScene }
           <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
             <div className="p-4">
               <p className="text-[12px] text-gray-400 font-semibold uppercase tracking-tight mb-1">物品名称</p>
-              <p className="text-[17px] font-bold text-black">{selectedItem.name}</p>
+              <p className="text-[17px] font-bold text-black">{selectedItem.name || '未命名'}</p>
             </div>
             <div className="p-4">
               <p className="text-[12px] text-gray-400 font-semibold uppercase tracking-tight mb-1">存放位置</p>
-              <p className="text-[17px] text-black font-medium">{selectedItem.locationDetail}</p>
+              <p className="text-[17px] text-black font-medium">{selectedItem.locationDetail || '未知'}</p>
               <p className="text-[13px] text-gray-500 font-bold mt-1">{selectedItem.scene}</p>
             </div>
             <div className="p-4">
@@ -114,7 +117,11 @@ const MenuView: React.FC<MenuViewProps> = ({ items, onRemoveItem, initialScene }
         </div>
 
         <div className="p-4 grid grid-cols-2 gap-3 pb-32">
-          {filteredItems.map(item => (
+          {filteredItems.length === 0 ? (
+            <div className="col-span-2 text-center py-20 text-gray-400">
+              <p className="font-bold">暂无该分类物品</p>
+            </div>
+          ) : filteredItems.map(item => (
             <div 
               key={item.id} 
               onClick={() => setSelectedItem(item)}
@@ -122,8 +129,8 @@ const MenuView: React.FC<MenuViewProps> = ({ items, onRemoveItem, initialScene }
             >
               <img src={item.imageUrl} className="w-full aspect-square object-cover" />
               <div className="p-3">
-                <p className="text-[15px] font-bold text-black truncate">{item.name}</p>
-                <p className="text-[12px] text-gray-400 truncate">{item.locationDetail}</p>
+                <p className="text-[15px] font-bold text-black truncate">{item.name || '未命名'}</p>
+                <p className="text-[12px] text-gray-400 truncate">{item.locationDetail || '位置未知'}</p>
               </div>
             </div>
           ))}
