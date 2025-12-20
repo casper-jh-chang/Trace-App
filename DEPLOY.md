@@ -127,6 +127,7 @@ WorkingDirectory=$(pwd)
 # 启动命令
 ExecStart=$NODE_EXEC server/index.js
 Environment=NODE_ENV=production
+Environment=PORT=8080
 Restart=always
 RestartSec=10
 User=root
