@@ -154,7 +154,7 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
                 <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-purple-50/30">
                   <span className="text-sm font-bold text-black flex items-center">
                     <i className="fa-solid fa-location-dot mr-2 text-purple-500"></i>
-                    {match.scene.locationCategory}
+                    {match.scene.superCategory ? `${match.scene.superCategory} · ` : ''}{match.scene.locationCategory}
                   </span>
                   <span className="text-xs text-gray-400 font-medium">
                     {new Date(match.scene.timestamp).toLocaleDateString()}
