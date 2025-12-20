@@ -206,9 +206,8 @@ ${memoryContext}
   };
 
   try {
-    const TEXT_API_URL = import.meta.env.DEV
-      ? "/dashscope-api/api/v1/services/aigc/text-generation/generation"
-      : "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation";
+    // ALWAYS use proxy path to avoid CORS, both in Dev and Prod (served by Express)
+    const TEXT_API_URL = "/dashscope-api/api/v1/services/aigc/text-generation/generation";
 
     const response = await fetch(TEXT_API_URL, {
       method: "POST",
