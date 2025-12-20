@@ -245,7 +245,7 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
 
   return (
     <div className="flex flex-col h-full bg-light relative">
-      <div className="px-6 py-4 pt-12 flex items-center justify-center fixed top-0 left-0 w-full z-50 bg-light/90 backdrop-blur-sm">
+      <div className="px-6 py-4 pt-6 flex items-center justify-center fixed top-0 left-0 w-full z-50 bg-light/90 backdrop-blur-sm">
         <h1 className="text-xl font-bold text-black">记东西</h1>
       </div>
       
