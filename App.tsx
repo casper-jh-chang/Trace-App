@@ -44,31 +44,6 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
-  const itemsCountByScene = useMemo(() => {
-    const counts: Record<string, number> = {};
-    scenes.forEach(scene => {
-      // Each scene counts as 1 for that location category, or we count items?
-      // The Sidebar shows counts per SceneType.
-      // SceneRecord has locationCategory which is a string.
-      // But Sidebar expects SceneType keys.
-      // We might need to map locationCategory to SceneType or just count items.
-      // For simplicity, let's just count how many scenes match the SceneType string if possible.
-      // Or if Sidebar uses SceneType, we should try to match.
-      // Actually, the new system uses free-text locationCategory.
-      // But Sidebar lists fixed SceneType categories.
-      // Maybe we can try to match?
-      // Or just leave it as 0 for now if we don't want to complicate it.
-      // Let's count total items in scenes that match the SceneType name.
-      
-      // Let's iterate items in scenes
-      scene.items.forEach(item => {
-         // item.scene might be populated?
-         // In new system, item.scene might be generic.
-         // Let's just ignore for now to keep it simple or fix later.
-      });
-    });
-    return counts;
-  }, [scenes]);
 
   const handleAddScene = async (newScene: SceneRecord) => {
     try {
@@ -130,8 +105,6 @@ const App: React.FC = () => {
       <Sidebar 
         isOpen={isSidebarOpen} 
         onClose={() => setIsSidebarOpen(false)} 
-        onSelectScene={(scene) => {}} 
-        itemsCountByScene={{}} 
         currentModel={currentAIModel}
         onSelectModel={(model) => {
           setAIModel(model);
