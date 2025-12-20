@@ -142,7 +142,7 @@ export const queryInventoryQwen = async (
       content: systemInstruction
     },
     ...chatHistory.map(m => ({
-      role: m.role,
+      role: m.role === 'model' ? 'assistant' : m.role,
       content: m.content
     })),
     {

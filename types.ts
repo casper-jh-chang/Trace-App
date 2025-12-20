@@ -15,7 +15,7 @@ export interface AIItem {
   scene: SceneType;
   preciseLocation: string;
   remarks: string;
-  box_2d: number[]; 
+  box_2d: number[];
   shelfLifeDays?: number;
 }
 
