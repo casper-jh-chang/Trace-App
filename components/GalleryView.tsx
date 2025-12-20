@@ -429,6 +429,33 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
     }
   };
 
+  const handleUpdateItem = async () => {
+    if (!selectedScene || editingItemIndex === null || !editingItemName.trim()) return;
+    
+    const updatedItems = [...selectedScene.items];
+    const shelfLife = editingShelfLife ? parseInt(editingShelfLife) : undefined;
+    
+    updatedItems[editingItemIndex] = { 
+        ...updatedItems[editingItemIndex], 
+        itemName: editingItemName.trim(),
+        isPerishable: editingIsPerishable,
+        shelfLifeDays: shelfLife
+    };
+    const updatedScene = { ...selectedScene, items: updatedItems };
+
+    try {
+      await updateScene(updatedScene);
+      if (onUpdate) onUpdate(updatedScene);
+      setSelectedScene(updatedScene);
+      setItemModalOpen(false);
+      setEditingItemIndex(null);
+      showToast("物品已更新");
+    } catch (e) {
+      console.error("Failed to update item", e);
+      showToast("更新失败");
+    }
+  };
+
   const handleUpdateItemName = async (index: number, name: string) => {
     if (!selectedScene || !name.trim()) return;
     
@@ -1112,40 +1139,34 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
                 
                 <div className="flex flex-wrap gap-2">
                   {selectedScene.items.map((it, idx) => (
-                    editingItemIndex === idx ? (
-                      <input 
-                        key={idx}
-                        autoFocus
-                        type="text"
-                        value={editingItemName}
-                        onChange={e => setEditingItemName(e.target.value)}
-                        onBlur={() => handleUpdateItemName(idx, editingItemName)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') handleUpdateItemName(idx, editingItemName);
-                        }}
-                        className="bg-white border-2 border-primary text-black px-3 py-1.5 rounded-xl text-sm font-bold outline-none w-32"
-                      />
-                    ) : (
-                      <span 
+                    <span 
                         key={idx} 
-                        className="group relative bg-primary/10 text-primary px-3 py-1.5 rounded-xl text-sm font-bold cursor-pointer hover:bg-primary/20 transition-colors pr-8"
+                        className={`group relative px-3 py-1.5 rounded-xl text-sm font-bold cursor-pointer transition-colors pr-8 border ${
+                            it.isPerishable 
+                              ? 'bg-orange-50 text-orange-600 border-orange-100 hover:bg-orange-100' 
+                              : 'bg-primary/10 text-primary border-transparent hover:bg-primary/20'
+                        }`}
                         onClick={() => {
                           setEditingItemIndex(idx);
                           setEditingItemName(it.itemName);
+                          setEditingIsPerishable(!!it.isPerishable);
+                          setEditingShelfLife(it.shelfLifeDays ? it.shelfLifeDays.toString() : '');
+                          setItemModalOpen(true);
                         }}
                       >
+                        {it.isPerishable && <i className="fa-solid fa-clock mr-1.5 text-xs opacity-70"></i>}
                         {it.itemName}
+                        {it.shelfLifeDays && <span className="ml-1 opacity-70 text-xs">({it.shelfLifeDays}天)</span>}
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteItem(idx);
                           }}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-primary/20 text-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white/50 text-current flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white"
                         >
                           <i className="fa-solid fa-xmark text-[10px]"></i>
                         </button>
-                      </span>
-                    )
+                    </span>
                   ))}
                   
                   {/* Add Item Button/Input */}
