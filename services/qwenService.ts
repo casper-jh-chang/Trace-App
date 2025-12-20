@@ -296,9 +296,8 @@ export const queryInventoryQwen = async (
     // Qwen text generation endpoint is different: 
     // Actually qwen-vl models can handle text only too, but qwen-plus is better for pure text logic.
     // Endpoint: https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation
-    const TEXT_API_URL = import.meta.env.DEV
-      ? "/dashscope-api/api/v1/services/aigc/text-generation/generation"
-      : "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation";
+    // ALWAYS use proxy path in production to avoid CORS
+    const TEXT_API_URL = "/dashscope-api/api/v1/services/aigc/text-generation/generation";
 
     const response = await fetch(TEXT_API_URL, {
       method: "POST",
