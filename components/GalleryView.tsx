@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { SceneRecord } from '../types';
-import { updateScene, addCategory, getCategories, deleteCategory, updateCategoryName } from '../services/dbService';
+import { SceneRecord, AIItem, SceneType } from '../types';
+import { updateScene, addCategory, getCategories, deleteCategory, updateCategoryName, deleteScene } from '../services/dbService';
 
 interface GalleryViewProps {
   scenes: SceneRecord[];
@@ -22,6 +22,18 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
   const [managingCategory, setManagingCategory] = useState<string | null>(null);
   const [renameInput, setRenameInput] = useState('');
   const [mergeTarget, setMergeTarget] = useState('');
+
+  // Selection Mode State
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showBatchMove, setShowBatchMove] = useState(false);
+  const [batchMoveTarget, setBatchMoveTarget] = useState('');
+
+  // Item Management State
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+  const [editingItemName, setEditingItemName] = useState('');
+  const [showAddItem, setShowAddItem] = useState(false);
+  const [newItemName, setNewItemName] = useState('');
 
   useEffect(() => {
     loadCategories();
@@ -175,6 +187,111 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
     }
   };
 
+  // Batch Operations
+  const toggleSelection = (id: string) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`确定要删除选中的 ${selectedIds.size} 个角落吗？`)) return;
+
+    try {
+      await Promise.all(Array.from(selectedIds).map(id => deleteScene(id)));
+      window.location.reload();
+    } catch (e) {
+      console.error("Batch delete failed", e);
+      showToast("批量删除失败");
+    }
+  };
+
+  const handleBatchMove = async () => {
+    if (selectedIds.size === 0 || !batchMoveTarget) return;
+
+    try {
+      const scenesToUpdate = scenes.filter(s => selectedIds.has(s.id));
+      await Promise.all(scenesToUpdate.map(scene => 
+        updateScene({ ...scene, superCategory: batchMoveTarget })
+      ));
+      window.location.reload();
+    } catch (e) {
+      console.error("Batch move failed", e);
+      showToast("批量移动失败");
+    }
+  };
+
+  // Item Management
+  const handleAddItem = async () => {
+    if (!selectedScene || !newItemName.trim()) return;
+    
+    const newItem: AIItem = {
+      itemName: newItemName.trim(),
+      category: '手动添加',
+      scene: SceneType.OTHER,
+      preciseLocation: '',
+      remarks: '',
+      box_2d: [0, 0, 0, 0]
+    };
+
+    const updatedItems = [...selectedScene.items, newItem];
+    const updatedScene = { ...selectedScene, items: updatedItems };
+
+    try {
+      await updateScene(updatedScene);
+      if (onUpdate) onUpdate(updatedScene);
+      setSelectedScene(updatedScene);
+      setNewItemName('');
+      setShowAddItem(false);
+      showToast("物品已添加");
+    } catch (e) {
+      console.error("Failed to add item", e);
+      showToast("添加失败");
+    }
+  };
+
+  const handleDeleteItem = async (index: number) => {
+    if (!selectedScene) return;
+    
+    const updatedItems = [...selectedScene.items];
+    updatedItems.splice(index, 1);
+    const updatedScene = { ...selectedScene, items: updatedItems };
+
+    try {
+      await updateScene(updatedScene);
+      if (onUpdate) onUpdate(updatedScene);
+      setSelectedScene(updatedScene);
+      showToast("物品已删除");
+    } catch (e) {
+      console.error("Failed to delete item", e);
+      showToast("删除失败");
+    }
+  };
+
+  const handleUpdateItemName = async (index: number, name: string) => {
+    if (!selectedScene || !name.trim()) return;
+    
+    const updatedItems = [...selectedScene.items];
+    updatedItems[index] = { ...updatedItems[index], itemName: name.trim() };
+    const updatedScene = { ...selectedScene, items: updatedItems };
+
+    try {
+      await updateScene(updatedScene);
+      if (onUpdate) onUpdate(updatedScene);
+      setSelectedScene(updatedScene);
+      setEditingItemIndex(null);
+      showToast("物品已更新");
+    } catch (e) {
+      console.error("Failed to update item", e);
+      showToast("更新失败");
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#F2F2F7]">
       {/* Toast Notification */}
@@ -191,12 +308,25 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
              {scenes.length} 个角落 · {allCategories.length} 个空间
            </p>
         </div>
-        <button 
-          onClick={() => setShowAddCategory(true)}
-          className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-black shadow-sm active:scale-90 transition-all"
-        >
-          <i className="fa-solid fa-folder-plus"></i>
-        </button>
+        <div className="flex gap-2">
+            <button 
+              onClick={() => {
+                  setIsSelectionMode(!isSelectionMode);
+                  setSelectedIds(new Set());
+              }}
+              className={`px-4 h-10 rounded-full font-bold text-sm transition-all ${isSelectionMode ? 'bg-black text-white' : 'bg-white text-black'}`}
+            >
+              {isSelectionMode ? '完成' : '选择'}
+            </button>
+            {!isSelectionMode && (
+              <button 
+                onClick={() => setShowAddCategory(true)}
+                className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-black shadow-sm active:scale-90 transition-all"
+              >
+                <i className="fa-solid fa-folder-plus"></i>
+              </button>
+            )}
+        </div>
       </div>
 
       {showAddCategory && (
@@ -258,7 +388,13 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   {groupScenes.map(scene => (
-                    <SceneCard key={scene.id} scene={scene} onClick={() => setSelectedScene(scene)} />
+                    <SceneCard 
+                      key={scene.id} 
+                      scene={scene} 
+                      onClick={() => isSelectionMode ? toggleSelection(scene.id) : setSelectedScene(scene)} 
+                      isSelected={selectedIds.has(scene.id)}
+                      isSelectionMode={isSelectionMode}
+                    />
                   ))}
                 </div>
               </div>
@@ -273,7 +409,13 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   {groupedScenes.uncategorized.map(scene => (
-                    <SceneCard key={scene.id} scene={scene} onClick={() => setSelectedScene(scene)} />
+                    <SceneCard 
+                      key={scene.id} 
+                      scene={scene} 
+                      onClick={() => isSelectionMode ? toggleSelection(scene.id) : setSelectedScene(scene)} 
+                      isSelected={selectedIds.has(scene.id)}
+                      isSelectionMode={isSelectionMode}
+                    />
                   ))}
                 </div>
               </div>
@@ -281,6 +423,64 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
           </>
         )}
       </div>
+
+      {/* Batch Action Bar */}
+      {isSelectionMode && (
+        <div className="fixed bottom-24 left-6 right-6 z-[100] animate-in slide-in-from-bottom-4">
+          <div className="bg-black/90 backdrop-blur-md text-white rounded-2xl p-4 shadow-2xl flex items-center justify-between">
+            <span className="font-bold ml-2">已选 {selectedIds.size} 项</span>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowBatchMove(true)}
+                disabled={selectedIds.size === 0}
+                className="bg-white/20 px-4 py-2 rounded-xl text-sm font-bold disabled:opacity-50 active:scale-95 transition-all"
+              >
+                移动到...
+              </button>
+              <button 
+                onClick={handleBatchDelete}
+                disabled={selectedIds.size === 0}
+                className="bg-red-500 px-4 py-2 rounded-xl text-sm font-bold disabled:opacity-50 active:scale-95 transition-all"
+              >
+                删除
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Move Modal */}
+      {showBatchMove && (
+        <div className="fixed inset-0 z-[140] bg-black/50 flex items-center justify-center p-6 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-black">移动到空间</h3>
+              <button onClick={() => setShowBatchMove(false)} className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 active:scale-95 transition-all">
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <div className="space-y-4">
+              <select 
+                value={batchMoveTarget} 
+                onChange={e => setBatchMoveTarget(e.target.value)}
+                className="w-full bg-gray-50 rounded-xl px-4 py-3 text-black font-bold outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+              >
+                <option value="">选择目标空间...</option>
+                {allCategories.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <button 
+                onClick={handleBatchMove}
+                disabled={!batchMoveTarget}
+                className="w-full bg-blue-500 text-white py-3 rounded-xl font-bold disabled:opacity-50 active:scale-95 transition-all"
+              >
+                确认移动
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Management Modal */}
       {managingCategory && (
@@ -463,10 +663,71 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
                 
                 <div className="flex flex-wrap gap-2">
                   {selectedScene.items.map((it, idx) => (
-                    <span key={idx} className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-xl text-sm font-bold">
-                      {it.itemName}
-                    </span>
+                    editingItemIndex === idx ? (
+                      <input 
+                        key={idx}
+                        autoFocus
+                        type="text"
+                        value={editingItemName}
+                        onChange={e => setEditingItemName(e.target.value)}
+                        onBlur={() => handleUpdateItemName(idx, editingItemName)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') handleUpdateItemName(idx, editingItemName);
+                        }}
+                        className="bg-white border-2 border-blue-500 text-black px-3 py-1.5 rounded-xl text-sm font-bold outline-none w-32"
+                      />
+                    ) : (
+                      <span 
+                        key={idx} 
+                        className="group relative bg-purple-50 text-purple-700 px-3 py-1.5 rounded-xl text-sm font-bold cursor-pointer hover:bg-purple-100 transition-colors pr-8"
+                        onClick={() => {
+                          setEditingItemIndex(idx);
+                          setEditingItemName(it.itemName);
+                        }}
+                      >
+                        {it.itemName}
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteItem(idx);
+                          }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-purple-200 text-purple-700 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white"
+                        >
+                          <i className="fa-solid fa-xmark text-[10px]"></i>
+                        </button>
+                      </span>
+                    )
                   ))}
+                  
+                  {/* Add Item Button/Input */}
+                  {showAddItem ? (
+                    <input 
+                      autoFocus
+                      type="text"
+                      placeholder="新物品..."
+                      value={newItemName}
+                      onChange={e => setNewItemName(e.target.value)}
+                      onBlur={() => {
+                        if (newItemName.trim()) {
+                            handleAddItem();
+                        } else {
+                            setShowAddItem(false);
+                        }
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleAddItem();
+                      }}
+                      className="bg-white border-2 border-gray-200 text-black px-3 py-1.5 rounded-xl text-sm font-bold outline-none w-32 focus:border-blue-500"
+                    />
+                  ) : (
+                    <button 
+                      onClick={() => setShowAddItem(true)}
+                      className="bg-gray-100 text-gray-400 px-3 py-1.5 rounded-xl text-sm font-bold hover:bg-gray-200 hover:text-gray-600 transition-colors"
+                    >
+                      <i className="fa-solid fa-plus mr-1"></i>
+                      添加
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -477,13 +738,27 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
   );
 };
 
-const SceneCard: React.FC<{ scene: SceneRecord, onClick: () => void }> = ({ scene, onClick }) => (
+const SceneCard: React.FC<{ 
+  scene: SceneRecord; 
+  onClick: () => void;
+  isSelected?: boolean;
+  isSelectionMode?: boolean;
+}> = ({ scene, onClick, isSelected, isSelectionMode }) => (
   <div 
     onClick={onClick}
-    className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm active:scale-95 transition-all"
+    className={`relative bg-white rounded-3xl overflow-hidden border shadow-sm active:scale-95 transition-all ${isSelected ? 'border-blue-500 ring-2 ring-blue-500 ring-offset-2' : 'border-gray-100'}`}
   >
-    <div className="aspect-square overflow-hidden bg-gray-50">
+    {isSelectionMode && (
+      <div className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center z-10 ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-white/50 border-white'}`}>
+        {isSelected && <i className="fa-solid fa-check text-white text-xs"></i>}
+      </div>
+    )}
+    <div className="aspect-square overflow-hidden bg-gray-50 relative">
       <img src={scene.fullImageUrl} className="w-full h-full object-cover" alt={scene.locationCategory} />
+      {/* Overlay when selected in selection mode */}
+      {isSelectionMode && isSelected && (
+        <div className="absolute inset-0 bg-blue-500/20"></div>
+      )}
     </div>
     <div className="p-4">
       <p className="text-sm font-bold text-black truncate mb-1">{scene.locationCategory}</p>
