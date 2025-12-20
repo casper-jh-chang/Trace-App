@@ -97,7 +97,7 @@ const MenuView: React.FC<MenuViewProps> = ({ items = [], onRemoveItem, onUpdateI
 
           <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
             <div className="p-4">
-              <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">物品名称</p>
+              <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">名字</p>
               {isEditing ? (
                 <input type="text" value={editForm?.name} onChange={e => setEditForm(prev => prev ? {...prev, name: e.target.value} : null)} className="w-full bg-gray-50 rounded p-1 text-[17px] font-bold" />
               ) : (
@@ -106,12 +106,12 @@ const MenuView: React.FC<MenuViewProps> = ({ items = [], onRemoveItem, onUpdateI
             </div>
             {selectedItem.expiryTimestamp && (
                <div className="p-4">
-                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">新鲜度期限</p>
+                <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">保质期</p>
                 <p className="text-[15px] text-black font-medium">{new Date(selectedItem.expiryTimestamp).toLocaleDateString()}</p>
               </div>
             )}
             <div className="p-4">
-              <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">存放位置</p>
+              <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">放在哪里</p>
               <p className="text-[15px] text-black font-medium">{selectedItem.locationDetail}</p>
               <p className="text-[12px] text-gray-400 mt-1">{selectedItem.scene}</p>
             </div>
@@ -123,13 +123,13 @@ const MenuView: React.FC<MenuViewProps> = ({ items = [], onRemoveItem, onUpdateI
                 onClick={() => { onRemoveItem(selectedItem.id); handleBack(); }}
                 className="w-full py-4 bg-black text-white font-bold rounded-xl shadow-lg active:scale-[0.98] transition-all"
               >
-                标记为已消耗/吃完
+                我吃完了 / 用完了
               </button>
               <button 
-                onClick={() => { if(window.confirm('确认彻底删除此记录？')) { onRemoveItem(selectedItem.id); handleBack(); } }}
+                onClick={() => { if(window.confirm('真的要删除吗？')) { onRemoveItem(selectedItem.id); handleBack(); } }}
                 className="w-full py-4 bg-white text-red-500 font-bold rounded-xl border border-gray-200"
               >
-                删除此条目
+                删除这个
               </button>
             </div>
           )}
@@ -141,12 +141,12 @@ const MenuView: React.FC<MenuViewProps> = ({ items = [], onRemoveItem, onUpdateI
   return (
     <div className="flex flex-col h-full bg-[#F2F2F7]">
       <div className="px-4 pt-8 pb-32">
-        <h1 className="text-3xl font-bold text-black mb-6">清单仪表盘</h1>
+        <h1 className="text-3xl font-bold text-black mb-6">我的物品</h1>
 
         {/* Freshness Section */}
         {expiringItems.length > 0 && (
           <div className="mb-8">
-            <h3 className="text-[13px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">新鲜度追踪</h3>
+            <h3 className="text-[13px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">快过期啦</h3>
             <div className="flex overflow-x-auto space-x-3 pb-2 no-scrollbar">
               {expiringItems.map(item => {
                 const info = getExpiryInfo(item);

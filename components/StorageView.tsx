@@ -91,58 +91,74 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage }) =
 
   return (
     <div className="flex flex-col h-full bg-[#F2F2F7] relative">
-      <div className="px-4 pt-6 pb-32">
-        <h1 className="text-2xl font-bold text-black mb-6">视觉记忆存入</h1>
+      <div className="px-6 pt-12 pb-32 flex flex-col items-center">
+        <h1 className="text-3xl font-bold text-black mb-8">记录一下</h1>
 
-        <div className="bg-white rounded-2xl p-4 border border-gray-200 mb-6 shadow-sm">
-          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-2">这张照片拍的是哪里？</label>
+        <div className="w-full bg-white rounded-3xl p-6 border border-gray-100 mb-6 shadow-sm">
+          <label className="text-sm font-bold text-blue-500 mb-3 block">
+            <i className="fa-solid fa-location-dot mr-2"></i>
+            这是哪里？
+          </label>
           <input 
             type="text" 
             value={batchLocation}
             onChange={e => setBatchLocation(e.target.value)}
-            placeholder="如：卧室书桌、厨房冰箱..."
-            className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 text-[15px] focus:ring-1 focus:ring-black"
+            placeholder="比如：书桌、冰箱、抽屉..."
+            className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-lg font-bold placeholder-gray-300 focus:ring-2 focus:ring-blue-500 transition-all"
           />
         </div>
 
-        <div className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm relative mb-6">
-          <img src={image || ''} className="w-full h-auto object-cover max-h-[60vh]" />
+        <div className="w-full bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm relative mb-6">
+          <img src={image || ''} className="w-full h-auto object-cover max-h-[50vh]" />
           {analyzing && (
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex flex-col items-center justify-center text-white">
-              <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin mb-4"></div>
-              <p className="text-sm font-bold">AI 正在建立视觉索引...</p>
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center text-blue-500">
+              <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-500 rounded-full animate-spin mb-4"></div>
+              <p className="text-lg font-bold animate-pulse">正在努力看清...</p>
             </div>
           )}
           {!analyzing && detectedItems.length > 0 && (
-             <div className="absolute top-4 right-4 bg-black/70 text-white px-3 py-1.5 rounded-full text-[11px] font-bold">
-               识别到 {detectedItems.length} 个物品
+             <div className="absolute top-4 right-4 bg-black/70 text-white px-4 py-2 rounded-full text-xs font-bold backdrop-blur-md">
+               看见了 {detectedItems.length} 个东西
              </div>
           )}
         </div>
 
         {!analyzing && (
-          <div className="bg-white rounded-2xl p-4 border border-gray-200">
-            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">自动标记结果</h3>
+          <div className="w-full bg-white rounded-3xl p-6 border border-gray-100">
+            <h3 className="text-sm font-bold text-purple-500 mb-4 block">
+              <i className="fa-solid fa-wand-magic-sparkles mr-2"></i>
+              我发现了这些
+            </h3>
             <div className="flex flex-wrap gap-2">
               {detectedItems.map((it, idx) => (
-                <span key={idx} className="bg-gray-100 text-black px-3 py-1.5 rounded-lg text-[13px] font-medium">
+                <span key={idx} className="bg-purple-50 text-purple-700 px-4 py-2 rounded-xl text-sm font-bold">
                   {it.itemName}
                 </span>
               ))}
-              {detectedItems.length === 0 && <p className="text-gray-400 text-xs">未识别到具体物品</p>}
+              {detectedItems.length === 0 && <p className="text-gray-400 font-medium">没发现特别的东西</p>}
             </div>
           </div>
         )}
       </div>
 
       {!analyzing && (
-        <div className="fixed bottom-24 left-0 w-full px-4">
+        <div className="fixed bottom-24 left-0 w-full px-6 z-40">
           <button 
             onClick={handleSaveScene} 
             disabled={syncing}
-            className="w-full py-4 bg-black text-white rounded-2xl font-bold text-[17px] shadow-xl disabled:opacity-50"
+            className="w-full py-5 bg-black text-white rounded-3xl font-bold text-xl shadow-xl disabled:opacity-50 active:scale-95 transition-all flex items-center justify-center gap-2"
           >
-            {syncing ? '存入中...' : '确认存入记忆'}
+            {syncing ? (
+              <>
+                <i className="fa-solid fa-circle-notch animate-spin"></i>
+                <span>正在记...</span>
+              </>
+            ) : (
+              <>
+                <i className="fa-solid fa-check-circle"></i>
+                <span>记住了！</span>
+              </>
+            )}
           </button>
         </div>
       )}

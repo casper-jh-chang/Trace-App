@@ -12,30 +12,36 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete }) => {
 
   return (
     <div className="flex flex-col h-full bg-[#F2F2F7]">
-      <div className="glass-header px-4 py-3 sticky top-0 z-10 flex items-center justify-center">
-        <div className="font-bold text-[17px]">记忆相册</div>
+      <div className="px-6 py-6 pt-12 flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-black">百宝箱</h1>
+        <div className="bg-purple-100 text-purple-600 px-4 py-2 rounded-full text-sm font-bold">
+          {scenes.length} 张照片
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-6 no-scrollbar pb-40">
+      <div className="flex-1 overflow-y-auto px-6 pb-40 no-scrollbar">
         {scenes.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-gray-400">
-            <i className="fa-solid fa-images text-5xl mb-4 opacity-20"></i>
-            <p className="text-sm font-bold">还没有存储任何记忆</p>
+            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+              <i className="fa-solid fa-box-open text-4xl opacity-20"></i>
+            </div>
+            <p className="text-lg font-bold text-gray-500">百宝箱是空的</p>
+            <p className="text-sm mt-2">快去拍点东西吧！</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             {scenes.map(scene => (
               <div 
                 key={scene.id} 
                 onClick={() => setSelectedScene(scene)}
-                className="bg-white rounded-xl overflow-hidden border border-gray-200 shadow-sm active:scale-95 transition-all"
+                className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm active:scale-95 transition-all"
               >
-                <div className="aspect-square overflow-hidden bg-gray-100">
+                <div className="aspect-square overflow-hidden bg-gray-50">
                   <img src={scene.fullImageUrl} className="w-full h-full object-cover" alt={scene.locationCategory} />
                 </div>
-                <div className="p-2">
-                  <p className="text-[12px] font-bold text-black truncate">{scene.locationCategory}</p>
-                  <p className="text-[10px] text-gray-400">{new Date(scene.timestamp).toLocaleDateString()}</p>
+                <div className="p-4">
+                  <p className="text-sm font-bold text-black truncate mb-1">{scene.locationCategory}</p>
+                  <p className="text-xs text-gray-400 font-medium">{new Date(scene.timestamp).toLocaleDateString()}</p>
                 </div>
               </div>
             ))}
@@ -45,34 +51,40 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete }) => {
 
       {/* 详情模态框 */}
       {selectedScene && (
-        <div className="fixed inset-0 z-[110] bg-black animate-in fade-in duration-300">
-          <div className="absolute top-12 left-6 z-[120]">
-            <button onClick={() => setSelectedScene(null)} className="w-10 h-10 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white">
-              <i className="fa-solid fa-chevron-left"></i>
+        <div className="fixed inset-0 z-[110] bg-black/95 animate-in fade-in duration-300 flex flex-col">
+          <div className="flex items-center justify-between px-6 pt-12 pb-6">
+            <button 
+              onClick={() => setSelectedScene(null)} 
+              className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white active:bg-white/20 transition-all"
+            >
+              <i className="fa-solid fa-chevron-left text-xl"></i>
             </button>
-          </div>
-          <div className="absolute top-12 right-6 z-[120]">
+            
             <button 
               onClick={(e) => { e.stopPropagation(); onDelete(selectedScene.id); setSelectedScene(null); }} 
-              className="w-10 h-10 bg-red-500/20 backdrop-blur-md rounded-full flex items-center justify-center text-red-500"
+              className="w-12 h-12 bg-red-500/20 backdrop-blur-md rounded-full flex items-center justify-center text-red-500 active:bg-red-500/30 transition-all"
             >
-              <i className="fa-solid fa-trash-can"></i>
+              <i className="fa-solid fa-trash-can text-xl"></i>
             </button>
           </div>
 
-          <div className="w-full h-full flex flex-col items-center justify-center p-4">
-            <img src={selectedScene.fullImageUrl} className="max-w-full max-h-[70vh] rounded-xl shadow-2xl" />
-            
-            <div className="mt-8 text-center text-white">
-              <h2 className="text-xl font-bold mb-2">{selectedScene.locationCategory}</h2>
-              <p className="text-white/60 text-sm mb-6">{new Date(selectedScene.timestamp).toLocaleString()}</p>
-              
-              <div className="flex flex-wrap justify-center gap-2 max-w-sm">
-                {selectedScene.items.map((it, idx) => (
-                  <span key={idx} className="bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full text-[11px] font-medium border border-white/10">
-                    {it.itemName}
-                  </span>
-                ))}
+          <div className="flex-1 flex flex-col items-center justify-center p-6 overflow-y-auto">
+            <div className="w-full max-w-sm bg-white rounded-3xl overflow-hidden mb-8 shadow-2xl">
+              <img src={selectedScene.fullImageUrl} className="w-full h-auto" />
+              <div className="p-6">
+                <h2 className="text-2xl font-bold text-black mb-2">{selectedScene.locationCategory}</h2>
+                <p className="text-gray-400 text-sm font-medium mb-6">
+                  <i className="fa-regular fa-clock mr-2"></i>
+                  {new Date(selectedScene.timestamp).toLocaleString()}
+                </p>
+                
+                <div className="flex flex-wrap gap-2">
+                  {selectedScene.items.map((it, idx) => (
+                    <span key={idx} className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-xl text-sm font-bold">
+                      {it.itemName}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

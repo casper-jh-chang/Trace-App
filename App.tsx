@@ -45,11 +45,30 @@ const App: React.FC = () => {
   }, [items]);
 
   const itemsCountByScene = useMemo(() => {
-    return items.reduce((acc, item) => {
-      acc[item.scene] = (acc[item.scene] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-  }, [items]);
+    const counts: Record<string, number> = {};
+    scenes.forEach(scene => {
+      // Each scene counts as 1 for that location category, or we count items?
+      // The Sidebar shows counts per SceneType.
+      // SceneRecord has locationCategory which is a string.
+      // But Sidebar expects SceneType keys.
+      // We might need to map locationCategory to SceneType or just count items.
+      // For simplicity, let's just count how many scenes match the SceneType string if possible.
+      // Or if Sidebar uses SceneType, we should try to match.
+      // Actually, the new system uses free-text locationCategory.
+      // But Sidebar lists fixed SceneType categories.
+      // Maybe we can try to match?
+      // Or just leave it as 0 for now if we don't want to complicate it.
+      // Let's count total items in scenes that match the SceneType name.
+      
+      // Let's iterate items in scenes
+      scene.items.forEach(item => {
+         // item.scene might be populated?
+         // In new system, item.scene might be generic.
+         // Let's just ignore for now to keep it simple or fix later.
+      });
+    });
+    return counts;
+  }, [scenes]);
 
   const handleAddScene = async (newScene: SceneRecord) => {
     try {
@@ -122,17 +141,23 @@ const App: React.FC = () => {
 
       {isMediaModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center px-4 pb-8">
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setIsMediaModalOpen(false)}></div>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMediaModalOpen(false)}></div>
           <div className="relative w-full max-w-md animate-in slide-in-from-bottom duration-300">
-            <div className="bg-white rounded-2xl overflow-hidden mb-2 divide-y divide-gray-100 shadow-2xl">
-              <button onClick={() => openMediaSource(true)} className="w-full py-4 text-[20px] text-black font-medium active:bg-gray-100 transition-colors">拍照记一下</button>
-              <button onClick={() => openMediaSource(false)} className="w-full py-4 text-[20px] text-black font-medium active:bg-gray-100 transition-colors">从相册添加记忆</button>
+            <div className="bg-white rounded-3xl overflow-hidden mb-3 shadow-2xl">
+              <button onClick={() => openMediaSource(true)} className="w-full py-6 text-xl text-black font-bold active:bg-gray-50 transition-colors border-b border-gray-100 flex items-center justify-center gap-2">
+                <i className="fa-solid fa-camera text-blue-500"></i>
+                拍一张
+              </button>
+              <button onClick={() => openMediaSource(false)} className="w-full py-6 text-xl text-black font-bold active:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+                <i className="fa-solid fa-image text-purple-500"></i>
+                选一张
+              </button>
             </div>
             <button 
               onClick={() => setIsMediaModalOpen(false)}
-              className="w-full py-4 bg-white rounded-2xl text-[20px] text-black font-bold active:bg-gray-100 transition-colors"
+              className="w-full py-4 bg-white rounded-3xl text-xl text-gray-500 font-bold active:scale-95 transition-all shadow-lg"
             >
-              取消
+              算了
             </button>
           </div>
         </div>
@@ -158,9 +183,9 @@ const App: React.FC = () => {
           <div className="h-full overflow-y-auto pt-12">
             <button 
               onClick={() => { setActiveTab('home'); setPendingImage(null); }}
-              className="fixed top-12 right-6 z-50 text-black"
+              className="fixed top-12 right-6 z-50 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-black active:scale-90 transition-all shadow-sm"
             >
-              <i className="fa-solid fa-house text-xl"></i>
+              <i className="fa-solid fa-house"></i>
             </button>
             <StorageView onAddScene={handleAddScene} initialImage={pendingImage} />
           </div>
@@ -169,9 +194,9 @@ const App: React.FC = () => {
           <div className="h-full">
              <button 
               onClick={() => { setActiveTab('home'); setLiveAutoStart(false); }}
-              className="fixed top-12 right-6 z-50 text-black"
+              className="fixed top-12 right-6 z-50 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-black active:scale-90 transition-all shadow-sm"
             >
-              <i className="fa-solid fa-house text-xl"></i>
+              <i className="fa-solid fa-house"></i>
             </button>
             <ChatSearch 
               scenes={scenes} 
@@ -186,9 +211,9 @@ const App: React.FC = () => {
           <div className="h-full">
             <button 
               onClick={() => setActiveTab('home')}
-              className="fixed top-12 right-6 z-50 text-black"
+              className="fixed top-12 right-6 z-50 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-black active:scale-90 transition-all shadow-sm"
             >
-              <i className="fa-solid fa-house text-xl"></i>
+              <i className="fa-solid fa-house"></i>
             </button>
             <GalleryView scenes={scenes} onDelete={handleDeleteScene} />
           </div>

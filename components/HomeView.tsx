@@ -44,74 +44,70 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartChat, onStartCamera, onOpenM
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-[#F2F2F7]">
-      <div className="pt-24 px-8 flex flex-col items-center">
-        <h1 className="text-4xl font-bold text-black tracking-tight">抽屉</h1>
-        <p className="text-gray-500 text-sm mt-1 font-medium">智能收纳助理</p>
+    <div className="flex flex-col h-screen w-full bg-[#F2F2F7] overflow-hidden">
+      <div className="pt-16 pb-8 px-8 flex flex-col items-center animate-in slide-in-from-top duration-500">
+        <h1 className="text-4xl font-bold text-black tracking-tight mb-2">抽屉</h1>
+        <p className="text-gray-500 text-sm font-medium bg-white px-4 py-1 rounded-full shadow-sm">你的收纳小帮手</p>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center px-6 max-w-lg mx-auto w-full">
-        {/* 语音助手入口 */}
-        <div className="flex flex-col items-center mb-12 animate-in fade-in zoom-in duration-700">
-           <button 
-            onClick={() => onStartChat('', true)}
-            className="group relative w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-xl border border-gray-100 active:scale-90 transition-all"
-           >
-              <div className="absolute inset-0 bg-black/5 rounded-full animate-ping [animation-duration:3s]"></div>
-              <div className="absolute inset-2 bg-black/5 rounded-full animate-pulse"></div>
-              <i className="fa-solid fa-headset text-3xl text-black"></i>
-           </button>
-           <p className="mt-4 text-[13px] font-bold text-black/60 tracking-widest uppercase">语音交互模式</p>
+      <div className="flex-1 px-6 pb-24 max-w-lg mx-auto w-full flex flex-col gap-6 overflow-y-auto">
+        
+        {/* Big Search Card */}
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col gap-4 animate-in zoom-in-95 duration-500 delay-100">
+           <div className="flex items-center gap-3 mb-2">
+             <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500">
+               <i className="fa-solid fa-magnifying-glass text-lg"></i>
+             </div>
+             <h2 className="text-xl font-bold text-black">找东西</h2>
+           </div>
+           
+           <div className="grid grid-cols-2 gap-3">
+             <button 
+               onClick={startListening}
+               className={`h-32 rounded-2xl flex flex-col items-center justify-center gap-3 transition-all ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-blue-500 text-white active:scale-95'}`}
+             >
+               <i className={`fa-solid ${isListening ? 'fa-microphone-lines' : 'fa-microphone'} text-3xl`}></i>
+               <span className="font-bold text-lg">{isListening ? '正在听...' : '按住说话'}</span>
+             </button>
+
+             <button 
+               onClick={() => onStartChat('')}
+               className="h-32 bg-gray-50 rounded-2xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-all hover:bg-gray-100 text-black border border-gray-200"
+             >
+               <i className="fa-regular fa-keyboard text-3xl text-gray-400"></i>
+               <span className="font-bold text-lg text-gray-600">打字问</span>
+             </button>
+           </div>
         </div>
 
-        <div className="mb-12">
-          <form onSubmit={handleSubmit} className="relative">
-            <div className="flex items-center bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden focus-within:border-black transition-colors">
-              <i className="fa-solid fa-magnifying-glass ml-4 text-gray-400 text-sm"></i>
-              <input 
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="我的耳机在哪里？"
-                className="flex-1 px-3 py-4 bg-transparent border-none focus:ring-0 text-[17px] text-black placeholder:text-gray-400"
-              />
-              <div className="flex items-center mr-2">
-                <button 
-                  type="button"
-                  onClick={startListening}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-gray-400 hover:text-black'}`}
-                >
-                  <i className="fa-solid fa-microphone text-sm"></i>
-                </button>
-                {query && (
-                  <button 
-                    type="submit"
-                    className="ml-1 w-10 h-10 rounded-full bg-black text-white flex items-center justify-center transition-transform active:scale-95"
-                  >
-                    <i className="fa-solid fa-arrow-up text-xs"></i>
-                  </button>
-                )}
-              </div>
-            </div>
-          </form>
-        </div>
+        {/* Big Record Card */}
+        <button 
+          onClick={onStartCamera}
+          className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between group active:scale-95 transition-all animate-in zoom-in-95 duration-500 delay-200"
+        >
+           <div className="flex flex-col items-start gap-1">
+             <h2 className="text-xl font-bold text-black group-hover:text-blue-500 transition-colors">记东西</h2>
+             <p className="text-sm text-gray-400 font-medium">拍张照，我帮你记</p>
+           </div>
+           <div className="w-16 h-16 rounded-2xl bg-black text-white flex items-center justify-center shadow-lg group-active:scale-90 transition-transform">
+             <i className="fa-solid fa-camera text-2xl"></i>
+           </div>
+        </button>
 
-        <div className="flex flex-col items-center space-y-6">
-          <button 
-            onClick={onStartCamera}
-            className="w-full py-4 bg-black text-white rounded-xl font-semibold text-[17px] shadow-sm active:bg-gray-800 active:scale-[0.99] transition-all"
-          >
-            <i className="fa-solid fa-camera mr-2"></i>
-            开始收纳
-          </button>
-          
-          <button 
-            onClick={onOpenMenu}
-            className="text-[15px] text-black font-bold hover:underline"
-          >
-            查看物品清单
-          </button>
-        </div>
+        {/* Gallery Card */}
+        <button 
+          onClick={onOpenMenu}
+          className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex items-center justify-between group active:scale-95 transition-all animate-in zoom-in-95 duration-500 delay-300"
+        >
+           <div className="flex flex-col items-start gap-1">
+             <h2 className="text-xl font-bold text-black group-hover:text-purple-500 transition-colors">百宝箱</h2>
+             <p className="text-sm text-gray-400 font-medium">看看我都存了啥</p>
+           </div>
+           <div className="w-16 h-16 rounded-2xl bg-purple-50 text-purple-500 flex items-center justify-center border border-purple-100 group-active:scale-90 transition-transform">
+             <i className="fa-solid fa-box-open text-2xl"></i>
+           </div>
+        </button>
+
       </div>
     </div>
   );
