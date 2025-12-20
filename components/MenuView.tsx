@@ -99,7 +99,7 @@ const MenuView: React.FC<MenuViewProps> = ({ items = [], onRemoveItem, onUpdateI
             <div className="p-4">
               <p className="text-[11px] text-gray-400 font-bold uppercase mb-1">名字</p>
               {isEditing ? (
-                <input type="text" value={editForm?.name} onChange={e => setEditForm(prev => prev ? {...prev, name: e.target.value} : null)} className="w-full bg-gray-50 rounded p-1 text-[17px] font-bold" />
+                <input type="text" value={editForm?.name} onChange={e => setEditForm(prev => prev ? {...prev, name: e.target.value} : null)} className="w-full bg-gray-50 rounded p-1 text-[17px] font-bold focus:outline-none focus:ring-0" />
               ) : (
                 <p className="text-[17px] font-bold text-black">{selectedItem.name}</p>
               )}
@@ -169,7 +169,7 @@ const MenuView: React.FC<MenuViewProps> = ({ items = [], onRemoveItem, onUpdateI
             placeholder="搜索物品..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-4 py-3 text-[15px] focus:ring-0 shadow-sm"
+            className="w-full bg-white border border-gray-200 rounded-xl pl-9 pr-4 py-3 text-[15px] focus:outline-none focus:ring-0 shadow-sm"
           />
         </div>
 

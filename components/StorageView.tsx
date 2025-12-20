@@ -104,7 +104,7 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage }) =
             value={batchLocation}
             onChange={e => setBatchLocation(e.target.value)}
             placeholder="比如：书桌、冰箱、抽屉..."
-            className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-lg font-bold placeholder-gray-300 focus:ring-2 focus:ring-blue-500 transition-all"
+            className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-lg font-bold placeholder-gray-300 focus:outline-none focus:ring-0 transition-all"
           />
         </div>
 

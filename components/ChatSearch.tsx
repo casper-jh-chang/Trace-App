@@ -239,7 +239,7 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
             onChange={e => setInputValue(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSend()}
             placeholder="问我吧，比如：我的耳机在哪？"
-            className="flex-1 bg-transparent border-none focus:ring-0 px-4 py-3 text-lg font-bold placeholder-gray-300"
+            className="flex-1 bg-transparent border-none focus:outline-none focus:ring-0 px-4 py-3 text-lg font-bold placeholder-gray-300"
           />
           <button 
             onClick={() => handleSend()}
