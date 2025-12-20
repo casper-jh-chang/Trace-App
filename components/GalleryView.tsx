@@ -15,6 +15,9 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
   const [existingCategories, setExistingCategories] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editingName, setEditingName] = useState('');
+
   // Management State
   const [managingCategory, setManagingCategory] = useState<string | null>(null);
   const [renameInput, setRenameInput] = useState('');
@@ -155,6 +158,22 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
       }
   };
 
+
+  const handleUpdateSceneName = async (scene: SceneRecord, newName: string) => {
+    if (!newName.trim()) return;
+    const updatedScene = { ...scene, locationCategory: newName.trim() };
+    try {
+      await updateScene(updatedScene);
+      if (onUpdate) {
+        onUpdate(updatedScene);
+      }
+      setSelectedScene(updatedScene);
+      showToast("角落名称已更新");
+    } catch (e) {
+      console.error("Failed to update scene name", e);
+      showToast("更新失败");
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-[#F2F2F7]">
@@ -347,7 +366,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
         <div className="fixed inset-0 z-[110] bg-black/95 animate-in fade-in duration-300 flex flex-col">
           <div className="flex items-center justify-between px-6 pt-12 pb-6">
             <button 
-              onClick={() => setSelectedScene(null)} 
+              onClick={() => { setSelectedScene(null); setIsEditingName(false); }} 
               className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white active:bg-white/20 transition-all"
             >
               <i className="fa-solid fa-chevron-left text-xl"></i>
@@ -366,8 +385,38 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
               <img src={selectedScene.fullImageUrl} className="w-full h-auto" />
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h2 className="text-2xl font-bold text-black mb-1">{selectedScene.locationCategory}</h2>
+                  <div className="flex-1 mr-4">
+                    {isEditingName ? (
+                      <input 
+                        autoFocus
+                        type="text"
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onBlur={() => {
+                          if (editingName !== selectedScene.locationCategory) {
+                             handleUpdateSceneName(selectedScene, editingName);
+                          }
+                          setIsEditingName(false);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.currentTarget.blur();
+                          }
+                        }}
+                        className="text-2xl font-bold text-black mb-1 w-full border-b-2 border-blue-500 outline-none bg-transparent"
+                      />
+                    ) : (
+                      <h2 
+                        onClick={() => {
+                          setEditingName(selectedScene.locationCategory);
+                          setIsEditingName(true);
+                        }}
+                        className="text-2xl font-bold text-black mb-1 cursor-pointer hover:bg-gray-50 rounded px-1 -ml-1 transition-colors flex items-center gap-2 group"
+                      >
+                        {selectedScene.locationCategory}
+                        <i className="fa-solid fa-pen text-xs text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                      </h2>
+                    )}
                     <p className="text-gray-400 text-sm font-medium">
                       <i className="fa-regular fa-clock mr-2"></i>
                       {new Date(selectedScene.timestamp).toLocaleString()}
