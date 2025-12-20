@@ -13,7 +13,7 @@ import { getAllScenes, addScene, deleteScene } from './services/dbService';
 const STORAGE_KEY = 'smart_organize_items_v2';
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'home' | 'storage' | 'menu' | 'chat' | 'gallery' | 'poster'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'storage' | 'menu' | 'chat' | 'gallery'>('home');
   const [items, setItems] = useState<StorageItem[]>([]);
   const [scenes, setScenes] = useState<SceneRecord[]>([]);
   const [preselectedScene, setPreselectedScene] = useState<SceneType | null>(null);
@@ -103,7 +103,7 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-[#F2F2F7] flex flex-col relative overflow-hidden text-black">
       <button 
         onClick={() => setIsSidebarOpen(true)}
-        className="absolute top-12 left-6 z-50 text-black hover:opacity-70 transition-opacity"
+        className="fixed top-12 left-6 z-50 text-black hover:opacity-70 transition-opacity"
       >
         <i className="fa-solid fa-bars-staggered text-2xl"></i>
       </button>
@@ -113,7 +113,6 @@ const App: React.FC = () => {
         onClose={() => setIsSidebarOpen(false)} 
         onSelectScene={(scene) => {}} 
         itemsCountByScene={{}} 
-        onOpenPoster={() => { setActiveTab('poster'); setIsSidebarOpen(false); }}
         currentModel={currentAIModel}
         onSelectModel={(model) => {
           setAIModel(model);
@@ -159,7 +158,7 @@ const App: React.FC = () => {
           <div className="h-full overflow-y-auto pt-12">
             <button 
               onClick={() => { setActiveTab('home'); setPendingImage(null); }}
-              className="absolute top-12 right-6 z-50 text-black"
+              className="fixed top-12 right-6 z-50 text-black"
             >
               <i className="fa-solid fa-house text-xl"></i>
             </button>
@@ -170,7 +169,7 @@ const App: React.FC = () => {
           <div className="h-full">
              <button 
               onClick={() => { setActiveTab('home'); setLiveAutoStart(false); }}
-              className="absolute top-12 right-6 z-50 text-black"
+              className="fixed top-12 right-6 z-50 text-black"
             >
               <i className="fa-solid fa-house text-xl"></i>
             </button>
@@ -186,22 +185,11 @@ const App: React.FC = () => {
           <div className="h-full">
             <button 
               onClick={() => setActiveTab('home')}
-              className="absolute top-12 right-6 z-50 text-black"
+              className="fixed top-12 right-6 z-50 text-black"
             >
               <i className="fa-solid fa-house text-xl"></i>
             </button>
             <GalleryView scenes={scenes} onDelete={handleDeleteScene} />
-          </div>
-        )}
-        {activeTab === 'poster' && (
-          <div className="h-full overflow-y-auto pt-12">
-            <button 
-              onClick={() => setActiveTab('home')}
-              className="absolute top-12 right-6 z-50 text-black"
-            >
-              <i className="fa-solid fa-house text-xl"></i>
-            </button>
-            <PosterView />
           </div>
         )}
       </main>
