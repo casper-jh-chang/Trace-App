@@ -7,6 +7,7 @@
 2. [方案 A: 全自动 Shell 脚本 (推荐)](#方案-a-全自动-shell-脚本-推荐)
 3. [方案 B: Docker 容器化部署](#方案-b-docker-容器化部署)
 4. [方案 C: Systemd 服务托管 (稳定)](#方案-c-systemd-服务托管-稳定)
+5. [常见问题 (Troubleshooting)](#5-常见问题-troubleshooting)
 
 ---
 
@@ -143,6 +144,7 @@ systemctl restart drawer
 
 # 5. 查看状态
 systemctl status drawer --no-pager
+```
 
 ### 3. 访问说明
 服务默认运行在 **8080** 端口 (避免运营商拦截 80 端口)。
@@ -154,7 +156,6 @@ systemctl status drawer --no-pager
 Environment=PORT=你的端口
 ```
 然后运行 `systemctl daemon-reload && systemctl restart drawer`。
-```
 
 ### 2. 常用管理命令
 ```bash
@@ -162,4 +163,41 @@ systemctl status drawer    # 查看状态
 systemctl restart drawer   # 重启服务
 systemctl stop drawer      # 停止服务
 journalctl -u drawer -f    # 查看实时日志
+```
+
+---
+
+## 5. 常见问题 (Troubleshooting)
+
+### 🚀 (必看) 国内服务器 GitHub 加速方案
+如果你的服务器在国内，直连 GitHub 速度极慢（甚至只有几KB/s），请使用**镜像代理**，速度能跑满带宽。
+
+**1. 修改远程仓库地址为镜像地址**：
+在服务器项目目录下运行：
+```bash
+# 格式: git remote set-url origin https://mirror.ghproxy.com/ + 原地址
+git remote set-url origin https://mirror.ghproxy.com/https://github.com/你的用户名/你的仓库名.git
+```
+
+**2. 验证并拉取**：
+```bash
+git pull origin master
+```
+*原理：使用公益代理服务器中转流量，速度通常能提升 10-100 倍。*
+
+---
+
+### Git 报错: `error: RPC failed; curl 16 Error in the HTTP2 framing layer`
+这是由于网络不稳定导致 git 的 HTTP/2 协议传输失败。
+
+**解决方法**：
+在服务器终端运行以下命令，强制 git 使用 HTTP/1.1：
+
+```bash
+git config --global http.version HTTP/1.1
+```
+
+如果仍然失败，尝试增加缓冲区大小：
+```bash
+git config --global http.postBuffer 524288000
 ```
