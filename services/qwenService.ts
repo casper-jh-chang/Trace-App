@@ -14,6 +14,12 @@ export const analyzeImageQwen = async (base64Image: string, knownSpaces: string[
   const prompt = `你是一个极度细致的收纳识别专家。请扫描这张照片，找出其中所有的**独立小物品**。
 【铁律】不要识别容器（如抽屉、盒子、柜子本身），只识别里面的内容物。
 请返回物品名称、分类、位置描述、2D坐标[xmin, ymin, xmax, ymax]（0-1000归一化）、是否为易腐/生鲜物品（isPerishable），以及预计保质期天数（shelfLifeDays，如果是食品）。
+
+【关于保质期 shelfLifeDays 的严格规定】
+1. **只有食品、饮料、药品、化妆品等有明确有效期的物品，才需要估算保质期。**
+2. **对于非易耗品（如工具、文具、衣物、电子产品、金属制品、弹簧、玩具等），shelfLifeDays 必须返回 null 或 -1。** 严禁默认为 365 天。
+3. 对于生鲜食品（蔬菜水果），请根据其成熟度合理估算剩余天数（通常 3-15 天）。
+
 同时，${spacesContext}
 然后，推测这是一个什么具体位置（例如：书桌、冰箱内部、茶几、床头柜），作为 suggestedLocation 返回。**注意：suggestedLocation 不要包含 suggestedSpace 的名称**。
 请以JSON格式返回，不要包含Markdown格式标记（如 \`\`\`json）。
@@ -28,8 +34,8 @@ export const analyzeImageQwen = async (base64Image: string, knownSpaces: string[
       "scene": "厨房", // 必须是以下之一：厨房, 衣柜, 书房, 地下室, 客厅, 浴室, 其他
       "preciseLocation": "位置描述",
       "remarks": "备注",
-      "shelfLifeDays": 365,
-      "isPerishable": true, // 是否为易腐/生鲜物品
+      "shelfLifeDays": null, // 非食品/易耗品请返回 null
+      "isPerishable": false, // 是否为易腐/生鲜物品
       "box_2d": [0, 0, 1000, 1000] // [xmin, ymin, xmax, ymax] 对应 [左上角x, 左上角y, 右下角x, 右下角y]，必须是0-1000的归一化坐标
     }
   ]
