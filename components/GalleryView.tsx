@@ -334,7 +334,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
     if (!confirm(`确定要删除选中的 ${selectedIds.size} 个角落吗？`)) return;
 
     try {
-      await Promise.all(Array.from(selectedIds).map(id => deleteScene(id)));
+      await Promise.all((Array.from(selectedIds) as string[]).map(id => deleteScene(id)));
       // Instead of reload, call onDelete for each ID to update parent state
       selectedIds.forEach(id => onDelete(id));
       setSelectedIds(new Set());
@@ -690,7 +690,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
             {/* Render Remaining Unsorted Categories (if any) */}
             {Object.entries(groupedScenes.groups)
                 .filter(([cat]) => !existingCategories.includes(cat))
-                .map(([category, groupScenes]) => (
+                .map(([category, groupScenes]: [string, SceneRecord[]]) => (
               <div key={category} data-category={category} className={`animate-in fade-in slide-in-from-bottom-4 duration-500 transition-all rounded-3xl ${dropTarget === category ? 'bg-primary/10 ring-4 ring-primary/20 p-2 -mx-2' : ''}`}>
                 <div className="flex items-center justify-between mb-3">
                     <div 

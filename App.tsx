@@ -1,11 +1,9 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Navigation from './components/Navigation';
-import HomeView from './components/HomeView';
 import StorageView from './components/StorageView';
 import ChatSearch from './components/ChatSearch';
 import GalleryView from './components/GalleryView';
-import Sidebar from './components/Sidebar';
 import { StorageItem, SceneType, SceneRecord } from './types';
 import { getAIModel, setAIModel, AIModelType } from './services/aiService';
 import { getAllScenes, addScene, deleteScene } from './services/dbService';
@@ -102,16 +100,6 @@ const App: React.FC = () => {
         <i className="fa-solid fa-bars-staggered text-2xl"></i>
       </button>
 
-      <Sidebar 
-        isOpen={isSidebarOpen} 
-        onClose={() => setIsSidebarOpen(false)} 
-        currentModel={currentAIModel}
-        onSelectModel={(model) => {
-          setAIModel(model);
-          setCurrentAIModel(model);
-        }}
-      />
-
       {isMediaModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center px-4 pb-8">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMediaModalOpen(false)}></div>
@@ -145,13 +133,6 @@ const App: React.FC = () => {
       />
 
       <main className="flex-1 overflow-hidden h-full">
-        {activeTab === 'home' && (
-          <HomeView 
-            onStartChat={startChat} 
-            onStartCamera={() => setIsMediaModalOpen(true)} 
-            onOpenMenu={() => setActiveTab('gallery')} 
-          />
-        )}
         {activeTab === 'storage' && (
           <div className="h-full">
             <StorageView 

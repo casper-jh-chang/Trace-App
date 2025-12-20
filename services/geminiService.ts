@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { AIAnalysisResult, SceneRecord, ChatMessage, SceneType } from "../types";
+import { AIAnalysisResult, SceneRecord, ChatMessage, SceneType, ChatAIResponse } from "../types";
 
 export const analyzeImage = async (base64Image: string, knownSpaces: string[] = []): Promise<AIAnalysisResult> => {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
