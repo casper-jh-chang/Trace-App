@@ -144,7 +144,7 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
               {msg.content}
               {msg.modelName && (
                 <div className="mt-2 text-[10px] opacity-50 font-normal text-right border-t border-gray-200/20 pt-1">
-                  （我是 {msg.modelName}）
+                {msg.modelName}
                 </div>
               )}
             </div>
