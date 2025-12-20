@@ -139,15 +139,15 @@ export const queryInventoryQwen = async (
   const messages = [
     {
       role: "system",
-      content: [{ text: systemInstruction }]
+      content: systemInstruction
     },
     ...chatHistory.map(m => ({
       role: m.role,
-      content: [{ text: m.content }]
+      content: m.content
     })),
     {
       role: "user",
-      content: [{ text: `用户提问: ${query}\n\n我的视觉记忆内容:\n${memoryContext}` }]
+      content: `用户提问: ${query}\n\n我的视觉记忆内容:\n${memoryContext}`
     }
   ];
 
@@ -179,6 +179,8 @@ export const queryInventoryQwen = async (
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Qwen Text API Error Body:", errorText);
       throw new Error(`Qwen Text API Error: ${response.status}`);
     }
 
