@@ -32,8 +32,8 @@ export const analyzeImage = async (base64Image: string): Promise<AIAnalysisResul
 };
 
 export const queryInventory = async (
-  query: string, 
-  scenes: SceneRecord[], 
+  query: string,
+  scenes: SceneRecord[],
   chatHistory: ChatMessage[]
 ): Promise<any> => {
   if (currentModel === 'qwen') {

@@ -181,6 +181,7 @@ export const queryInventoryQwen = async (
   4. 必须返回 matchedSceneIds。
   5. **关键点**：必须返回 matchedItemDetails 列表，明确指明在哪个场景里匹配到了哪个具体物品名称（必须与原始数据完全一致）。
   
+  【重要】你必须只输出标准的 JSON 格式，严禁输出任何其他文本或 Markdown 标记。
   请以JSON格式返回，格式如下：
   {
     "answer": "回答内容",
@@ -239,8 +240,28 @@ export const queryInventoryQwen = async (
     const data = await response.json();
     const content = data.output?.choices?.[0]?.message?.content;
 
-    const cleanContent = content.replace(/```json\n?|```/g, "").trim();
-    const parsedResponse = JSON.parse(cleanContent) as ChatAIResponse;
+    // Robust JSON extraction
+    let cleanContent = content.replace(/```json\n?|```/g, "").trim();
+
+    // Attempt to extract JSON if there's extra text
+    const firstBrace = cleanContent.indexOf('{');
+    const lastBrace = cleanContent.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
+    }
+
+    let parsedResponse: ChatAIResponse;
+    try {
+      parsedResponse = JSON.parse(cleanContent) as ChatAIResponse;
+    } catch (parseError) {
+      console.warn("JSON parse failed, falling back to raw text:", cleanContent);
+      // Fallback: treat the entire content as the answer
+      parsedResponse = {
+        answer: content, // Use original content
+        matchedSceneIds: [],
+        matchedItemDetails: []
+      };
+    }
 
     // --- RE-VERIFICATION LOGIC ---
     // If we have matched items, try to get a better bounding box using the visual model on-demand
