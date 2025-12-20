@@ -178,6 +178,7 @@ const App: React.FC = () => {
               initialQuery={initialChatQuery} 
               autoStartLive={liveAutoStart}
               onLiveEnd={() => setLiveAutoStart(false)}
+              onClearInitialQuery={() => setInitialChatQuery('')}
             />
           </div>
         )}

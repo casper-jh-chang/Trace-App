@@ -2,12 +2,14 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { queryInventory } from '../services/aiService';
 import { SceneRecord, ChatMessage, AIItem, ChatAIResponse } from '../types';
+import { getChatHistory, addChatMessage } from '../services/dbService';
 
 interface ChatSearchProps {
   scenes: SceneRecord[];
   initialQuery?: string;
   autoStartLive?: boolean;
   onLiveEnd?: () => void;
+  onClearInitialQuery?: () => void;
 }
 
 interface MatchResult {
@@ -65,12 +67,33 @@ const CroppedImage = ({ src, box2d, alt }: { src: string, box2d: number[], alt: 
   return <canvas ref={canvasRef} className="w-24 h-24 object-contain bg-gray-50 rounded-lg border border-gray-100 flex-shrink-0" />;
 };
 
-const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStartLive, onLiveEnd }) => {
+const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStartLive, onLiveEnd, onClearInitialQuery }) => {
   const [messages, setMessages] = useState<ExtendedChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasSentInitialQuery = useRef(false);
+  const historyLoaded = useRef(false);
+
+  useEffect(() => {
+    if (historyLoaded.current) return;
+    
+    getChatHistory().then(history => {
+       if (history && history.length > 0) {
+         // User requested to ignore match cards in history, so we don't hydrate matches
+         const hydrated = history.map(msg => {
+           return { ...msg, matches: undefined };
+         });
+         setMessages(prev => {
+            // Prevent duplicates if history loaded late
+           const existingIds = new Set(prev.map((m: any) => m.timestamp));
+           const newHistory = hydrated.filter((h: any) => !existingIds.has(h.timestamp));
+           return [...newHistory, ...prev];
+        });
+      }
+      historyLoaded.current = true;
+    }).catch(console.error);
+  }, [scenes]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -80,9 +103,11 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
     const query = text || inputValue;
     if (!query.trim() || loading) return;
     setInputValue('');
-    const userMsg: ExtendedChatMessage = { role: 'user', content: query };
+    const timestamp = Date.now();
+    const userMsg: ExtendedChatMessage & { timestamp?: number } = { role: 'user', content: query, timestamp };
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
+    addChatMessage(userMsg).catch(console.error);
     
     try {
       const aiResponse: ChatAIResponse = await queryInventory(query, scenes, messages);
@@ -109,10 +134,23 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
         role: 'model', 
         content: aiResponse.answer, 
         matches: Array.from(matchMap.values()),
-        modelName: aiResponse.modelName
-      }]);
+        modelName: aiResponse.modelName,
+        timestamp: Date.now()
+      } as ExtendedChatMessage]);
+
+      // Save to DB (exclude matches as per user request)
+       addChatMessage({
+         role: 'model',
+         content: aiResponse.answer,
+         matches: undefined,
+         modelName: aiResponse.modelName,
+         timestamp: Date.now()
+       }).catch(console.error);
+
     } catch (e) {
-      setMessages(prev => [...prev, { role: 'model', content: "抱歉，我的大脑断网了。" }]);
+      const errorMsg = { role: 'model', content: "抱歉，我的大脑断网了。", timestamp: Date.now() };
+      setMessages(prev => [...prev, errorMsg as ExtendedChatMessage]);
+      addChatMessage(errorMsg).catch(console.error);
     } finally {
       setLoading(false);
     }
@@ -122,8 +160,9 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
     if (initialQuery && !hasSentInitialQuery.current) {
       hasSentInitialQuery.current = true;
       handleSend(initialQuery);
+      onClearInitialQuery?.();
     }
-  }, [initialQuery]);
+  }, [initialQuery, onClearInitialQuery]);
 
   return (
     <div className="flex flex-col h-full bg-[#F2F2F7]">

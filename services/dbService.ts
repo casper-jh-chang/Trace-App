@@ -3,7 +3,7 @@ import { SceneRecord } from "../types";
 
 const DB_NAME = 'DrawerMemoryDB';
 const STORE_NAME = 'scenes';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export const initDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -16,6 +16,9 @@ export const initDB = (): Promise<IDBDatabase> => {
       const db = (event.target as IDBOpenDBRequest).result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('chats')) {
+        db.createObjectStore('chats', { keyPath: 'id', autoIncrement: true });
       }
     };
   });
@@ -54,5 +57,41 @@ export const deleteScene = async (id: string): Promise<void> => {
 
     request.onsuccess = () => resolve();
     request.onerror = () => reject('Delete scene error');
+  });
+};
+
+export const getChatHistory = async (): Promise<any[]> => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('chats', 'readonly');
+    const store = transaction.objectStore('chats');
+    const request = store.getAll();
+
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject('Fetch chats error');
+  });
+};
+
+export const addChatMessage = async (message: any): Promise<void> => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('chats', 'readwrite');
+    const store = transaction.objectStore('chats');
+    const request = store.add(message);
+
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject('Add chat error');
+  });
+};
+
+export const clearChatHistory = async (): Promise<void> => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('chats', 'readwrite');
+    const store = transaction.objectStore('chats');
+    const request = store.clear();
+
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject('Clear chat error');
   });
 };
