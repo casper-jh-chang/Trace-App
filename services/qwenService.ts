@@ -162,6 +162,61 @@ const locateItemInScene = async (sceneImage: string, itemName: string): Promise<
   }
 };
 
+const searchItemsInContext = async (query: string, memoryContext: string): Promise<{ sceneId: string, itemName: string }[]> => {
+  const searchPrompt = `你是一个精准的数据库检索助手。
+用户查询: "${query}"
+数据库:
+${memoryContext}
+
+请从数据库中找出所有与用户查询**语义相关**的物品。
+例如：如果用户查“水果”，你要找出“苹果”、“香蕉”等。
+如果用户查“红色的东西”，你要找出“可乐”、“苹果”等。
+
+请务必返回所有匹配项。
+请只返回一个JSON对象，格式如下：
+{
+  "matchedItems": [
+    { "sceneId": "...", "itemName": "..." }
+  ]
+}
+如果未找到，返回 { "matchedItems": [] }。不要输出任何其他内容。`;
+
+  const payload = {
+    model: "qwen-plus",
+    input: {
+      messages: [
+        { role: "user", content: searchPrompt }
+      ]
+    },
+    parameters: { result_format: "message" }
+  };
+
+  try {
+    const TEXT_API_URL = import.meta.env.DEV
+      ? "/dashscope-api/api/v1/services/aigc/text-generation/generation"
+      : "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation";
+
+    const response = await fetch(TEXT_API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) return [];
+    const data = await response.json();
+    const content = data.output?.choices?.[0]?.message?.content || "{}";
+    const cleanContent = content.replace(/```json\n?|```/g, "").trim();
+    const parsed = JSON.parse(cleanContent);
+    return parsed.matchedItems || [];
+  } catch (e) {
+    console.error("Search step failed:", e);
+    return [];
+  }
+};
+
 export const queryInventoryQwen = async (
   query: string,
   scenes: SceneRecord[],
@@ -172,18 +227,30 @@ export const queryInventoryQwen = async (
     ? scenes.map(s => `[场景ID:${s.id}, 位置:${s.locationCategory}] 包含物品: ${s.items.map(i => i.itemName).join(', ')}`).join('\n')
     : "当前没有任何视觉记忆记录。";
 
-  const systemInstruction = `你是一个“视觉记忆”管家。你的回答必须基于用户提供的“场景记忆”。
+  // --- STEP 1: RETRIEVAL (Search) ---
+  // Force a dedicated retrieval step to ensure we don't miss items
+  const foundItems = await searchItemsInContext(query, memoryContext);
+
+  // Construct a context specifically about what we found
+  const foundContext = foundItems.length > 0
+    ? `【检索结果】我在记忆库中发现了以下相关物品：${JSON.stringify(foundItems)}。请务必基于这些检索结果回答用户，并填充 matchedItemDetails。`
+    : `【检索结果】我在记忆库中没有发现明确匹配的物品。`;
+
+  const systemInstruction = `你是一个“视觉记忆”管家。你的回答必须基于用户提供的“场景记忆”和“检索结果”。
   
   【回答规则】
-  1. 如果用户找某个东西，检查哪些“场景ID”中包含它。
+  1. 如果【检索结果】中有物品，你必须告诉用户这些物品在什么位置。
   2. 你的回答必须非常简短：告知它在哪个位置。**严禁在回答中提及“场景ID”、“标记”或“ID”等技术术语**。
-  3. 如果记忆中没有，直接说“我不记得见过这个”。
+  3. 如果【检索结果】为空，直接说“我不记得见过这个”。
   4. 必须返回 matchedSceneIds。
   5. **关键点**：必须返回 matchedItemDetails 列表，明确指明在哪个场景里匹配到了哪个具体物品名称（必须与原始数据完全一致）。
   
   【重要】你必须只输出标准的 JSON 格式，严禁输出任何其他文本或 Markdown 标记。
+  【思维链】在生成JSON之前，你可以先思考，但必须将思考过程放入JSON的 "_thought" 字段中，不要在JSON之外输出任何内容。
+  
   请以JSON格式返回，格式如下：
   {
+    "_thought": "你的思考过程...",
     "answer": "回答内容",
     "matchedSceneIds": ["场景ID1", "场景ID2"],
     "matchedItemDetails": [{"sceneId": "场景ID", "itemName": "物品名"}]
@@ -200,7 +267,7 @@ export const queryInventoryQwen = async (
     })),
     {
       role: "user",
-      content: `用户提问: ${query}\n\n我的视觉记忆内容:\n${memoryContext}`
+      content: `用户提问: ${query}\n\n我的视觉记忆内容:\n${memoryContext}\n\n${foundContext}`
     }
   ];
 

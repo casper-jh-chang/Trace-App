@@ -81,7 +81,11 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
       aiResponse.matchedItemDetails?.forEach(detail => {
         const scene = scenes.find(s => s.id === detail.sceneId);
         if (scene) {
-          const item = scene.items.find(it => it.itemName === detail.itemName);
+          const item = scene.items.find(it => 
+            it.itemName === detail.itemName || 
+            it.itemName.includes(detail.itemName) || 
+            detail.itemName.includes(it.itemName)
+          );
           if (item) {
             if (!matchMap.has(scene.id)) {
               matchMap.set(scene.id, { scene, items: [] });
