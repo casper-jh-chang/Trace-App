@@ -1,4 +1,3 @@
-
 import { SceneRecord } from "../types";
 
 const DB_NAME = 'DrawerMemoryDB';
@@ -34,7 +33,12 @@ export const getCategories = async (): Promise<string[]> => {
     const store = transaction.objectStore('categories');
     const request = store.getAll();
 
-    request.onsuccess = () => resolve((request.result || []).map((item: any) => item.name));
+    request.onsuccess = () => {
+      const cats = request.result || [];
+      // Sort by order
+      cats.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+      resolve(cats.map((item: any) => item.name));
+    };
     request.onerror = () => reject('Fetch categories error');
   });
 };
@@ -44,10 +48,37 @@ export const addCategory = async (name: string): Promise<void> => {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('categories', 'readwrite');
     const store = transaction.objectStore('categories');
-    const request = store.put({ name }); // put handles add or update (idempotent)
 
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject('Add category error');
+    // Find max order to append at end
+    const getAllReq = store.getAll();
+    getAllReq.onsuccess = () => {
+      const cats = getAllReq.result || [];
+      const maxOrder = cats.reduce((max: number, c: any) => Math.max(max, c.order || 0), -1);
+
+      const request = store.put({ name, order: maxOrder + 1 });
+
+      request.onsuccess = () => { }; // Wait for transaction complete
+      request.onerror = () => reject('Add category error');
+    };
+    getAllReq.onerror = () => reject('Add category error');
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject('Add category transaction error');
+  });
+};
+
+export const updateCategoryOrder = async (categories: string[]): Promise<void> => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('categories', 'readwrite');
+    const store = transaction.objectStore('categories');
+
+    categories.forEach((name, index) => {
+      store.put({ name, order: index });
+    });
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject('Update category order error');
   });
 };
 
@@ -156,8 +187,16 @@ export const updateCategoryName = async (oldName: string, newName: string): Prom
 
     // 1. Update Category Store
     const catStore = transaction.objectStore('categories');
-    catStore.put({ name: newName }); // Create new or confirm existing
-    catStore.delete(oldName);        // Delete old
+
+    // Get old category to preserve order
+    const getReq = catStore.get(oldName);
+    getReq.onsuccess = () => {
+      const oldCat = getReq.result;
+      const order = oldCat ? oldCat.order : 0;
+
+      catStore.put({ name: newName, order }); // Create new with preserved order
+      catStore.delete(oldName);        // Delete old
+    };
 
     // 2. Update Scenes Store
     const sceneStore = transaction.objectStore(STORE_NAME);

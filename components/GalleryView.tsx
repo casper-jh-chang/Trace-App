@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { SceneRecord, AIItem, SceneType } from '../types';
-import { updateScene, addCategory, getCategories, deleteCategory, updateCategoryName, deleteScene } from '../services/dbService';
+import { updateScene, addCategory, getCategories, deleteCategory, updateCategoryName, deleteScene, updateCategoryOrder } from '../services/dbService';
 
 interface GalleryViewProps {
   scenes: SceneRecord[];
@@ -14,6 +14,16 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [existingCategories, setExistingCategories] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Category Drag State
+  const [draggingCategory, setDraggingCategory] = useState<string | null>(null);
+
+  // Refs for Touch Drag
+  const categoriesRef = React.useRef(existingCategories);
+  const draggingCategoryRef = React.useRef(draggingCategory);
+  
+  useEffect(() => { categoriesRef.current = existingCategories; }, [existingCategories]);
+  useEffect(() => { draggingCategoryRef.current = draggingCategory; }, [draggingCategory]);
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingName, setEditingName] = useState('');
@@ -36,6 +46,115 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
   const [showAddItem, setShowAddItem] = useState(false);
   const [newItemName, setNewItemName] = useState('');
 
+  // Drag & Drop State
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+  const dropTargetRef = React.useRef<string | null>(null);
+  const dragStartPos = React.useRef({ x: 0, y: 0 });
+  const isDragGesture = React.useRef(false);
+  const autoScrollSpeed = React.useRef(0);
+  const animationFrameId = React.useRef<number | null>(null);
+
+  // Auto Scroll Loop
+  useEffect(() => {
+    if (!isDragging) {
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+        animationFrameId.current = null;
+      }
+      return;
+    }
+
+    const scrollLoop = () => {
+      if (containerRef.current && autoScrollSpeed.current !== 0) {
+        containerRef.current.scrollTop += autoScrollSpeed.current;
+      }
+      animationFrameId.current = requestAnimationFrame(scrollLoop);
+    };
+    scrollLoop();
+
+    return () => {
+      if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
+    };
+  }, [isDragging]);
+
+  const handleGlobalTouchMove = (e: any) => {
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
+    if (!isDragging && !isDragGesture.current) {
+      const dx = clientX - dragStartPos.current.x;
+      const dy = clientY - dragStartPos.current.y;
+      if (Math.sqrt(dx*dx + dy*dy) > 10) {
+        isDragGesture.current = true;
+        setIsDragging(true);
+      }
+    }
+
+    if (isDragGesture.current) {
+      if (e.cancelable) e.preventDefault();
+      setDragPosition({ x: clientX, y: clientY });
+      
+      const buffer = 80; // Reduced buffer to be more specific to edges
+      const maxSpeed = 15;
+      const vh = window.innerHeight;
+      
+      if (clientY < buffer) {
+        autoScrollSpeed.current = -maxSpeed * (1 - clientY / buffer);
+      } else if (clientY > vh - buffer) {
+        autoScrollSpeed.current = maxSpeed * (1 - (vh - clientY) / buffer);
+      } else {
+        autoScrollSpeed.current = 0;
+      }
+
+      const elements = document.elementsFromPoint(clientX, clientY);
+      const categoryEl = elements.find(el => el.getAttribute('data-category'));
+      const category = categoryEl?.getAttribute('data-category');
+      
+      if (category !== dropTargetRef.current) {
+        setDropTarget(category || null);
+        dropTargetRef.current = category || null;
+      }
+    }
+  };
+  
+  const handleGlobalTouchEnd = () => {
+    window.removeEventListener('touchmove', handleGlobalTouchMove);
+    window.removeEventListener('touchend', handleGlobalTouchEnd);
+    window.removeEventListener('mousemove', handleGlobalTouchMove);
+    window.removeEventListener('mouseup', handleGlobalTouchEnd);
+
+    if (isDragGesture.current && dropTargetRef.current) {
+      performBatchMove(dropTargetRef.current);
+    }
+    
+    setIsDragging(false);
+    isDragGesture.current = false;
+    autoScrollSpeed.current = 0;
+    setDropTarget(null);
+    dropTargetRef.current = null;
+  };
+
+  const handleDragStart = (e: React.TouchEvent | React.MouseEvent, sceneId: string) => {
+    if (!isSelectionMode || !selectedIds.has(sceneId)) return;
+    
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    
+    dragStartPos.current = { x: clientX, y: clientY };
+    isDragGesture.current = false;
+    
+    // Use passive: false to allow preventing scroll on touch devices if needed, 
+    // but we generally want to allow scroll unless we are dragging.
+    // However, if we start a drag, we need to prevent default scrolling.
+    window.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
+    window.addEventListener('touchend', handleGlobalTouchEnd);
+    window.addEventListener('mousemove', handleGlobalTouchMove);
+    window.addEventListener('mouseup', handleGlobalTouchEnd);
+  };
+
   useEffect(() => {
     loadCategories();
   }, []);
@@ -53,7 +172,6 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
   };
-
 
   // Group scenes by superCategory, including empty categories
   const groupedScenes = useMemo(() => {
@@ -136,68 +254,10 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
           // Refresh everything
           await loadCategories();
           if (onUpdate) {
-              // Trigger a parent update if needed, though for category rename we might need a full refresh mechanism or parent state update
-              // Since we don't have a way to update all scenes at once via props without reloading from DB in parent,
-              // we rely on the fact that we might need to reload scenes in parent.
-              // However, user requested NO RELOAD.
-              // We need to update the local scenes state or notify parent to reload scenes.
-              // Assuming parent passes `scenes` prop which is state.
-              // We can't directly mutate `scenes` prop.
-              // The best way is to call a callback to reload scenes.
-              // But currently `onUpdate` takes a single scene.
-              // Let's reload the page as a fallback is REMOVED as requested.
-              // We need to notify the user to refresh or we need a callback to refresh all scenes.
-              // For now, we will just close the modal and show success, but the UI might be stale until next visit if we don't reload.
-              // ACTUALLY, we should ask parent to reload.
-              // Since I cannot change App.tsx interface easily in this turn without checking it, 
-              // I will use window.location.reload() removal and try to update local state if possible, 
-              // but `scenes` come from props.
-              // Wait, if I update the category name, I should update the `superCategory` of affected scenes in the `scenes` prop locally?
-              // I can't.
-              // So I will trigger a window event or similar? No, that's hacky.
-              // I will use a forced update pattern if possible or just accept that I need to ask parent to reload.
-              // Let's look at `onUpdate`. It updates one scene.
-              // I will simply reload the categories list and close modal.
-              // The scenes in the view might still show old category name until they are re-fetched.
-              // This is a limitation without changing App.tsx.
-              // BUT, I can try to hack it by calling onUpdate for every affected scene?
-              // That might be too many calls.
-              // Let's just reload categories and show toast.
-              // Ideally App.tsx should pass a `onRefresh` prop.
-              // I'll stick to reloading categories and closing modal for now, and maybe the user accepts it or I'll fix App.tsx next.
-              // Actually, I can use `window.location.reload()` alternatives? No.
-              // The user said "不要跳转" (don't redirect/refresh).
-              // So I must update the UI state.
-              // I will assume for now that I can't update `scenes` prop deeply.
-              // But wait, `groupedScenes` depends on `scenes`.
-              // If `scenes` are not updated, the UI won't update.
-              // I will emit a custom event to tell App.tsx to reload?
-              // Or better, I will assume the user is okay with a silent data update and manual refresh if I can't fix it perfectly.
-              // BUT I SHOULD FIX IT.
-              // I will check App.tsx to see how `scenes` are loaded.
-              // It likely uses `useLiveQuery` or `useEffect`.
-              // If it's `useEffect`, I can't trigger it easily.
-              // Let's assume I can't fix the prop update without changing App.tsx.
-              // I will try to update the categories state which I control.
-              // But `groupedScenes` uses `scenes` prop.
-              
-              // Let's implement a workaround: 
-              // We will just reload the page for now? NO, User said NO JUMP.
-              // I will add a `onReload` prop to GalleryView in the next step if needed.
-              // For now, I will remove `window.location.reload()` and leave it as is, 
-              // knowing the UI might be slightly out of sync for the category name on the cards until re-render.
-              // Wait, I can try to force a re-render or fetch scenes again?
-              // I will use `window.dispatchEvent(new Event('db-change'))` if the app supports it?
-              // Let's just remove the reload and see.
-              
-              // actually, for Rename and Merge, it affects multiple scenes.
-              // I'll use a hack: window.location.href = window.location.href (soft refresh) is also a jump.
-              // I'll just close it.
-              
+              // Trigger a parent update if needed
           }
           setManagingCategory(null);
           showToast("改名成功 (请刷新页面查看最新状态)"); 
-          // Note: This is a compromise. To do it right, I need to refactor App.tsx to allow triggering a reload.
       } catch (e) {
           console.error("Failed to rename", e);
           showToast("改名失败");
@@ -235,7 +295,6 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
           showToast("删除失败");
       }
   };
-
 
   const handleUpdateSceneName = async (scene: SceneRecord, newName: string) => {
     if (!newName.trim()) return;
@@ -281,12 +340,12 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
     }
   };
 
-  const handleBatchMove = async () => {
-    if (selectedIds.size === 0 || !batchMoveTarget) return;
+  const performBatchMove = async (targetCategory: string) => {
+    if (selectedIds.size === 0 || !targetCategory) return;
 
     try {
       const scenesToUpdate = scenes.filter(s => selectedIds.has(s.id));
-      const updatedScenes = scenesToUpdate.map(scene => ({ ...scene, superCategory: batchMoveTarget }));
+      const updatedScenes = scenesToUpdate.map(scene => ({ ...scene, superCategory: targetCategory }));
       
       await Promise.all(updatedScenes.map(scene => updateScene(scene)));
       
@@ -298,11 +357,15 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
       setSelectedIds(new Set());
       setIsSelectionMode(false);
       setShowBatchMove(false);
-      showToast("批量移动成功");
+      showToast(`已移动到 ${targetCategory}`);
     } catch (e) {
       console.error("Batch move failed", e);
-      showToast("批量移动失败");
+      showToast("移动失败");
     }
+  };
+
+  const handleBatchMove = () => {
+    performBatchMove(batchMoveTarget);
   };
 
   // Item Management
@@ -371,8 +434,108 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
     }
   };
 
+  // Category Sorting Handlers
+  const handleCategoryDragStart = (e: React.DragEvent, category: string) => {
+    e.stopPropagation();
+    setDraggingCategory(category);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleCategoryDragOver = (e: React.DragEvent, targetCategory: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!draggingCategory || draggingCategory === targetCategory) return;
+    
+    const oldIndex = existingCategories.indexOf(draggingCategory);
+    const newIndex = existingCategories.indexOf(targetCategory);
+    
+    if (oldIndex !== -1 && newIndex !== -1) {
+        const newCategories = [...existingCategories];
+        newCategories.splice(oldIndex, 1);
+        newCategories.splice(newIndex, 0, draggingCategory);
+        setExistingCategories(newCategories);
+    }
+  };
+
+  const handleCategoryDragEnd = async () => {
+    if (draggingCategory) {
+        try {
+           await updateCategoryOrder(existingCategories);
+        } catch (e) {
+           console.error("Failed to save order", e);
+           showToast("排序保存失败");
+        }
+    }
+    setDraggingCategory(null);
+  };
+
+  // Touch Handlers for Category Sorting
+  const handleCategoryTouchMove = React.useCallback((e: any) => {
+      e.preventDefault();
+      const touch = e.touches ? e.touches[0] : e;
+      
+      const element = document.elementFromPoint(touch.clientX, touch.clientY);
+      const targetCategoryEl = element?.closest('[data-category]');
+      const targetCategory = targetCategoryEl?.getAttribute('data-category');
+      
+      const currentDrag = draggingCategoryRef.current;
+      
+      if (targetCategory && currentDrag && targetCategory !== currentDrag) {
+         setExistingCategories(prev => {
+             const oldIndex = prev.indexOf(currentDrag);
+             const newIndex = prev.indexOf(targetCategory);
+             if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+                 const newCats = [...prev];
+                 newCats.splice(oldIndex, 1);
+                 newCats.splice(newIndex, 0, currentDrag);
+                 return newCats;
+             }
+             return prev;
+         });
+      }
+  }, []);
+
+  const handleCategoryTouchEnd = React.useCallback(async () => {
+      window.removeEventListener('touchmove', handleCategoryTouchMove);
+      window.removeEventListener('touchend', handleCategoryTouchEnd);
+      
+      if (draggingCategoryRef.current) {
+          try {
+             await updateCategoryOrder(categoriesRef.current);
+          } catch (e) {
+             console.error("Failed to save order", e);
+             showToast("排序保存失败");
+          }
+      }
+      setDraggingCategory(null);
+  }, [handleCategoryTouchMove]); // showToast dependency omitted but captured safely
+
+  const handleCategoryTouchStart = (e: React.TouchEvent, category: string) => {
+      e.stopPropagation();
+      setDraggingCategory(category);
+      
+      window.addEventListener('touchmove', handleCategoryTouchMove, { passive: false });
+      window.addEventListener('touchend', handleCategoryTouchEnd);
+  };
+
   return (
-    <div className="flex flex-col h-full bg-[#F2F2F7]">
+    <div className="flex flex-col h-full bg-[#F2F2F7] select-none">
+      {/* Drag Avatar */}
+      {isDragging && (
+        <div 
+          className="fixed z-[150] pointer-events-none bg-white/90 backdrop-blur rounded-2xl p-4 shadow-2xl border-2 border-blue-500 transform -translate-x-1/2 -translate-y-1/2 flex items-center gap-3"
+          style={{ left: dragPosition.x, top: dragPosition.y }}
+        >
+           <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+             <i className="fa-solid fa-layer-group text-xl text-gray-400"></i>
+           </div>
+           <div>
+             <p className="font-bold text-black text-sm">移动 {selectedIds.size} 个角落</p>
+             <p className="text-xs text-blue-500 font-bold">{dropTarget ? `松手移动到: ${dropTarget}` : '拖动到空间分类...'}</p>
+           </div>
+        </div>
+      )}
+
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-[120] bg-black/80 text-white px-4 py-2 rounded-full text-sm font-medium animate-in fade-in slide-in-from-top-4">
@@ -435,7 +598,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-6 pb-40 no-scrollbar space-y-8">
+      <div ref={containerRef} className="flex-1 overflow-y-auto px-6 pb-40 no-scrollbar space-y-8">
         {scenes.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-gray-400">
             <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
@@ -446,9 +609,18 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
           </div>
         ) : (
           <>
-            {/* Render Grouped Scenes */}
-            {Object.entries(groupedScenes.groups).map(([category, groupScenes]) => (
-              <div key={category} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Render Sorted Categories */}
+            {existingCategories.map(category => {
+               const groupScenes = groupedScenes.groups[category];
+               if (!groupScenes) return null;
+               
+               return (
+              <div 
+                key={category} 
+                data-category={category} 
+                className={`animate-in fade-in slide-in-from-bottom-4 duration-500 transition-all rounded-3xl ${dropTarget === category ? 'bg-blue-50 ring-4 ring-blue-500/20 p-2 -mx-2' : ''} ${draggingCategory === category ? 'opacity-40' : ''}`}
+                onDragOver={(e) => handleCategoryDragOver(e, category)}
+              >
                 <div className="flex items-center justify-between mb-3">
                     <div 
                         className="flex items-center gap-2 cursor-pointer active:opacity-70 transition-opacity select-none"
@@ -463,6 +635,72 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
                         <h2 className="text-xl font-bold text-black">{category}</h2>
                         <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded-md text-xs font-bold">{groupScenes.length}</span>
                     </div>
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setManagingCategory(category);
+                                setRenameInput('');
+                                setMergeTarget('');
+                            }}
+                            className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-200 hover:text-gray-600 active:scale-95 transition-all"
+                        >
+                            <i className="fa-solid fa-ellipsis"></i>
+                        </button>
+                        <div 
+                            draggable
+                            onDragStart={(e) => handleCategoryDragStart(e, category)}
+                            onDragEnd={handleCategoryDragEnd}
+                            onTouchStart={(e) => handleCategoryTouchStart(e, category)}
+                            className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 cursor-grab active:cursor-grabbing hover:bg-gray-200 hover:text-gray-600 transition-all"
+                        >
+                            <i className="fa-solid fa-sort"></i>
+                        </div>
+                    </div>
+                </div>
+                {!collapsedCategories.has(category) && (
+                    <div className="grid grid-cols-2 gap-4">
+                    {groupScenes.map(scene => (
+                        <SceneCard 
+                        key={scene.id} 
+                        scene={scene} 
+                        onClick={() => isSelectionMode ? toggleSelection(scene.id) : setSelectedScene(scene)} 
+                        onLongPress={() => {
+                          if (!isSelectionMode) {
+                            setIsSelectionMode(true);
+                            toggleSelection(scene.id);
+                          }
+                        }}
+                        onDragStart={(e) => handleDragStart(e, scene.id)}
+                        isSelected={selectedIds.has(scene.id)}
+                        isSelectionMode={isSelectionMode}
+                        />
+                    ))}
+                    </div>
+                )}
+              </div>
+            )})}
+            
+            {/* Render Remaining Unsorted Categories (if any) */}
+            {Object.entries(groupedScenes.groups)
+                .filter(([cat]) => !existingCategories.includes(cat))
+                .map(([category, groupScenes]) => (
+              <div key={category} data-category={category} className={`animate-in fade-in slide-in-from-bottom-4 duration-500 transition-all rounded-3xl ${dropTarget === category ? 'bg-blue-50 ring-4 ring-blue-500/20 p-2 -mx-2' : ''}`}>
+                <div className="flex items-center justify-between mb-3">
+                    <div 
+                        className="flex items-center gap-2 cursor-pointer active:opacity-70 transition-opacity select-none"
+                        onClick={() => {
+                            const newSet = new Set(collapsedCategories);
+                            if (newSet.has(category)) newSet.delete(category);
+                            else newSet.add(category);
+                            setCollapsedCategories(newSet);
+                        }}
+                    >
+                        <i className={`fa-solid fa-chevron-right text-gray-400 text-sm transition-transform duration-200 ${!collapsedCategories.has(category) ? 'rotate-90' : ''}`}></i>
+                        <h2 className="text-xl font-bold text-black">{category}</h2>
+                        <span className="bg-gray-200 text-gray-600 px-2 py-0.5 rounded-md text-xs font-bold">{groupScenes.length}</span>
+                    </div>
+                    {/* No Drag Handle for Unsaved Categories */}
                     <button 
                         onClick={(e) => {
                             e.stopPropagation();
@@ -488,6 +726,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
                             toggleSelection(scene.id);
                           }
                         }}
+                        onDragStart={(e) => handleDragStart(e, scene.id)}
                         isSelected={selectedIds.has(scene.id)}
                         isSelectionMode={isSelectionMode}
                         />
@@ -686,7 +925,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
           <div className="flex-1 overflow-y-auto">
             <div className="min-h-full flex items-center justify-center p-6">
               <div className="w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl">
-              <img src={selectedScene.fullImageUrl} className="w-full h-auto" />
+              <img src={selectedScene.fullImageUrl} className="w-full h-auto pointer-events-none" draggable={false} />
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1 mr-4">
@@ -847,12 +1086,16 @@ const SceneCard: React.FC<{
   scene: SceneRecord; 
   onClick: () => void;
   onLongPress: () => void;
+  onDragStart?: (e: React.TouchEvent | React.MouseEvent) => void;
   isSelected?: boolean;
   isSelectionMode?: boolean;
-}> = ({ scene, onClick, onLongPress, isSelected, isSelectionMode }) => {
+}> = ({ scene, onClick, onLongPress, onDragStart, isSelected, isSelectionMode }) => {
   const timerRef = React.useRef<any>(null);
 
-  const handleStart = () => {
+  const handleStart = (e: React.TouchEvent | React.MouseEvent) => {
+    if (onDragStart) {
+        onDragStart(e);
+    }
     timerRef.current = setTimeout(() => {
       onLongPress();
       if (navigator.vibrate) navigator.vibrate(50);
@@ -874,7 +1117,8 @@ const SceneCard: React.FC<{
       onMouseLeave={handleEnd}
       onTouchStart={handleStart}
       onTouchEnd={handleEnd}
-      className={`relative bg-white rounded-3xl overflow-hidden border shadow-sm active:scale-95 transition-all ${isSelected ? 'border-blue-500 ring-2 ring-blue-500 ring-offset-2' : 'border-gray-100'}`}
+      onTouchMove={handleEnd}
+      className={`relative bg-white rounded-3xl overflow-hidden border shadow-sm active:scale-95 transition-all select-none ${isSelected ? 'border-blue-500 ring-2 ring-blue-500 ring-offset-2' : 'border-gray-100'}`}
     >
       {isSelectionMode && (
         <div className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center z-10 ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-white/50 border-white'}`}>
@@ -882,7 +1126,7 @@ const SceneCard: React.FC<{
         </div>
       )}
       <div className="aspect-square overflow-hidden bg-gray-50 relative">
-        <img src={scene.fullImageUrl} className="w-full h-full object-cover" alt={scene.locationCategory} />
+        <img src={scene.fullImageUrl} className="w-full h-full object-cover pointer-events-none" draggable={false} alt={scene.locationCategory} />
         {/* Overlay when selected in selection mode */}
         {isSelectionMode && isSelected && (
           <div className="absolute inset-0 bg-blue-500/20"></div>
