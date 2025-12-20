@@ -2,6 +2,7 @@
   "name": "Drawer - digging items",
   "description": "An intelligent home organization assistant that uses AI to recognize items and track their locations through photos and natural language interaction.",
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "microphone"
   ]
 }

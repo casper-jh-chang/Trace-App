@@ -9,30 +9,38 @@ export enum SceneType {
   OTHER = '其他'
 }
 
-export interface StorageItem {
-  id: string;
-  name: string;
-  category: string;
-  scene: SceneType;
-  locationDetail: string;
-  imageUrl: string; // This will store the cropped image
-  fullImageUrl: string; // Keep original for reference
-  timestamp: number;
-  remarks: string;
-}
-
-export interface ChatMessage {
-  role: 'user' | 'model';
-  content: string;
-}
-
 export interface AIItem {
   itemName: string;
   category: string;
   scene: SceneType;
   preciseLocation: string;
   remarks: string;
-  box_2d: number[]; // [ymin, xmin, ymax, xmax] normalized to 1000
+  box_2d: number[]; 
+  shelfLifeDays?: number;
+}
+
+// Added StorageItem interface to support legacy inventory view and item tracking
+export interface StorageItem {
+  id: string;
+  name: string;
+  imageUrl: string;
+  timestamp: number;
+  expiryTimestamp?: number;
+  locationDetail: string;
+  scene: SceneType;
+}
+
+export interface SceneRecord {
+  id: string;
+  fullImageUrl: string; // 存储压缩后的全景照片
+  timestamp: number;
+  locationCategory: string; // 用户输入的大位置，如“主卧衣柜”
+  items: AIItem[]; // 该照片中识别到的所有物体元数据
+}
+
+export interface ChatMessage {
+  role: 'user' | 'model';
+  content: string;
 }
 
 export interface AIAnalysisResult {

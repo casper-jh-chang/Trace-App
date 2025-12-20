@@ -8,7 +8,8 @@ const PosterView: React.FC = () => {
 
   const generatePoster = async () => {
     setLoading(true);
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+    // Fix: Create instance right before call as per guidelines
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     try {
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',

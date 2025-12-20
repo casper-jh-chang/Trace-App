@@ -1,109 +1,99 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { AIAnalysisResult, StorageItem, ChatMessage, SceneType } from "../types";
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+import { AIAnalysisResult, SceneRecord, ChatMessage, SceneType } from "../types";
 
 export const analyzeImage = async (base64Image: string): Promise<AIAnalysisResult> => {
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: [
-      {
-        parts: [
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const MAX_REPETITIONS = 4;
+
+  const scanTask = async () => {
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: [
           {
-            inlineData: {
-              mimeType: "image/jpeg",
-              data: base64Image.split(',')[1] || base64Image,
-            },
-          },
-          {
-            text: "请像目标检测模型（如YOLO）一样，识别这张照片中所有独立的物品。对于每一个物品，返回其名称、分类、典型场景、具体位置、备注信息，以及它的 2D 检测框 [ymin, xmin, ymax, xmax]（坐标需归一化到 0-1000 之间）。请以 JSON 格式返回物品列表。",
-          },
-        ],
-      },
-    ],
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          items: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                itemName: { type: Type.STRING, description: "物品名称" },
-                category: { type: Type.STRING, description: "物品分类" },
-                scene: { 
-                  type: Type.STRING, 
-                  enum: Object.values(SceneType),
-                  description: "所在的典型家庭场景" 
-                },
-                preciseLocation: { type: Type.STRING, description: "具体的存放位置描述" },
-                remarks: { type: Type.STRING, description: "备注信息" },
-                box_2d: { 
-                  type: Type.ARRAY, 
-                  items: { type: Type.NUMBER }, 
-                  description: "检测框坐标 [ymin, xmin, ymax, xmax]，范围 0-1000" 
+            parts: [
+              {
+                inlineData: {
+                  mimeType: "image/jpeg",
+                  data: base64Image.split(',')[1] || base64Image,
                 },
               },
-              required: ["itemName", "category", "scene", "preciseLocation", "remarks", "box_2d"],
+              {
+                text: `你是一个极度细致的收纳识别专家。请扫描这张照片，找出其中所有的**独立小物品**。
+                【铁律】不要识别容器（如抽屉、盒子、柜子本身），只识别里面的内容物。
+                请返回物品名称、分类、位置描述、2D坐标[ymin, xmin, ymax, xmax]以及预计保质期（如果是食品）。`,
+              },
+            ],
+          },
+        ],
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              items: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    itemName: { type: Type.STRING },
+                    category: { type: Type.STRING },
+                    scene: { type: Type.STRING, enum: Object.values(SceneType) },
+                    preciseLocation: { type: Type.STRING },
+                    remarks: { type: Type.STRING },
+                    shelfLifeDays: { type: Type.NUMBER },
+                    box_2d: { type: Type.ARRAY, items: { type: Type.NUMBER } },
+                  },
+                  required: ["itemName", "category", "scene", "preciseLocation", "remarks", "box_2d"],
+                },
+              },
             },
+            required: ["items"],
           },
         },
-        required: ["items"],
-      },
-    },
-  });
+      });
+      return JSON.parse(response.text) as AIAnalysisResult;
+    } catch (e) {
+      return { items: [] };
+    }
+  };
 
-  return JSON.parse(response.text);
+  const allResults = await Promise.all(Array(MAX_REPETITIONS).fill(null).map(() => scanTask()));
+  return allResults.reduce((best, current) => (current.items?.length || 0) > (best.items?.length || 0) ? current : best, { items: [] } as AIAnalysisResult);
 };
 
 export interface ChatAIResponse {
   answer: string;
-  matchedItemIds: string[];
+  matchedSceneIds: string[];
+  matchedItemDetails: Array<{ sceneId: string, itemName: string }>;
 }
 
 export const queryInventory = async (
   query: string, 
-  inventory: StorageItem[], 
+  scenes: SceneRecord[], 
   chatHistory: ChatMessage[]
 ): Promise<ChatAIResponse> => {
-  const inventoryContext = JSON.stringify(inventory.map(i => ({
-    id: i.id,
-    name: i.name,
-    scene: i.scene,
-    location: i.locationDetail,
-    category: i.category,
-    remarks: i.remarks
-  })));
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  
+  const memoryContext = scenes.length > 0 
+    ? scenes.map(s => `[场景ID:${s.id}, 位置:${s.locationCategory}] 包含物品: ${s.items.map(i => i.itemName).join(', ')}`).join('\n')
+    : "当前没有任何视觉记忆记录。";
 
-  const systemInstruction = `你是一个名为“抽屉”的智能收纳管家。
+  const systemInstruction = `你是一个“视觉记忆”管家。你的回答必须基于用户提供的“场景记忆”。
   
-  任务：
-  1. 根据用户的问题在库存中查找物品。
-  2. 如果用户描述的是特征（颜色、材质、形状、备注信息），请尝试在 remarks 和 category 中联想匹配。
-  3. 如果找到多个可能匹配的物品，请在回答中列出它们并询问用户。
-  4. 如果找到物品，回答中不要包含 ID，只需描述位置。
-  
-  库存数据结构：
-  ${inventoryContext}
-  
-  必须以 JSON 格式返回：
-  {
-    "answer": "你的自然语言回复内容",
-    "matchedItemIds": ["匹配到的物品ID1", "匹配到的物品ID2"]
-  }
-  如果没找到任何匹配，matchedItemIds 请返回空数组 []。`;
+  【回答规则】
+  1. 如果用户找某个东西，检查哪些“场景ID”中包含它。
+  2. 你的回答必须非常简短：告知它在哪个位置，做了什么标记。
+  3. 如果记忆中没有，直接说“我不记得见过这个”。
+  4. 必须返回 matchedSceneIds。
+  5. **关键点**：必须返回 matchedItemDetails 列表，明确指明在哪个场景里匹配到了哪个具体物品名称（必须与原始数据完全一致）。`;
 
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: [
-      ...chatHistory.map(m => ({
-        role: m.role,
-        parts: [{ text: m.content }]
-      })),
-      { role: "user", parts: [{ text: query }] }
+      ...chatHistory.map(m => ({ role: m.role, parts: [{ text: m.content }] })),
+      { role: "user", parts: [{ text: `用户提问: ${query}\n\n我的视觉记忆内容:\n${memoryContext}` }] }
     ],
     config: {
       systemInstruction,
@@ -112,12 +102,19 @@ export const queryInventory = async (
         type: Type.OBJECT,
         properties: {
           answer: { type: Type.STRING },
-          matchedItemIds: { 
-            type: Type.ARRAY, 
-            items: { type: Type.STRING } 
+          matchedSceneIds: { type: Type.ARRAY, items: { type: Type.STRING } },
+          matchedItemDetails: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                sceneId: { type: Type.STRING },
+                itemName: { type: Type.STRING }
+              }
+            }
           }
         },
-        required: ["answer", "matchedItemIds"]
+        required: ["answer", "matchedSceneIds", "matchedItemDetails"]
       }
     },
   });
