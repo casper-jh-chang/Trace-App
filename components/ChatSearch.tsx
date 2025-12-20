@@ -132,12 +132,12 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
   }, [initialQuery, onClearInitialQuery]);
 
   return (
-    <div className="flex flex-col h-full bg-[#F2F2F7]">
-      <div className="px-6 py-4 pt-12 flex items-center justify-center sticky top-0 z-10 bg-[#F2F2F7]/90 backdrop-blur-sm">
+    <div className="flex flex-col h-full bg-[#F2F2F7] relative">
+      <div className="px-6 py-4 pt-12 flex items-center justify-center fixed top-0 left-0 w-full z-50 bg-[#F2F2F7]/90 backdrop-blur-sm">
         <h1 className="text-xl font-bold text-black">找东西</h1>
       </div>
       
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-6 no-scrollbar pb-40">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pt-32 pb-40 space-y-6 no-scrollbar">
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
             <div className={`max-w-[85%] rounded-3xl px-5 py-4 text-lg shadow-sm font-medium ${msg.role === 'user' ? 'bg-blue-500 text-white rounded-br-sm' : 'bg-white text-black rounded-bl-sm border border-gray-100'}`}>
@@ -203,7 +203,7 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="fixed bottom-24 left-0 w-full px-6 z-40">
+      <div className="fixed bottom-28 left-0 w-full px-6 z-40">
         <div className="max-w-lg mx-auto flex items-center bg-white rounded-[2rem] border-2 border-gray-100 shadow-2xl px-3 py-2">
           <input 
             type="text" 

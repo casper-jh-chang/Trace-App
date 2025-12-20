@@ -547,7 +547,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
         </div>
       )}
 
-      <div className="px-6 py-6 pt-12 flex items-center justify-between">
+      <div className="px-6 py-6 pt-6 flex items-center justify-between">
         <div>
            <h1 className="text-3xl font-bold text-black">百宝箱</h1>
            <p className="text-gray-400 text-sm font-medium mt-1">
@@ -909,7 +909,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
 
       {/* 详情模态框 */}
       {selectedScene && (
-        <div className="fixed inset-0 z-[110] bg-black/95 animate-in fade-in duration-300 flex flex-col">
+        <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm animate-in fade-in duration-300 flex flex-col">
           <div className="flex items-center justify-between px-6 pt-12 pb-6">
             <button 
               onClick={() => { setSelectedScene(null); setIsEditingName(false); }} 

@@ -26,6 +26,7 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
   // Space Management
   const [existingCategories, setExistingCategories] = useState<string[]>([]);
   const [selectedSpace, setSelectedSpace] = useState<string>('');
+  const [showSpaceSelector, setShowSpaceSelector] = useState(false);
   const [showNewSpaceModal, setShowNewSpaceModal] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState('');
   const [categoriesLoaded, setCategoriesLoaded] = useState(false);
@@ -244,8 +245,11 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
 
   return (
     <div className="flex flex-col h-full bg-[#F2F2F7] relative">
-      <div className="px-6 pt-12 pb-32 flex flex-col items-center">
-        <h1 className="text-3xl font-bold text-black mb-8">记录一下</h1>
+      <div className="px-6 py-4 pt-12 flex items-center justify-center fixed top-0 left-0 w-full z-50 bg-[#F2F2F7]/90 backdrop-blur-sm">
+        <h1 className="text-xl font-bold text-black">记东西</h1>
+      </div>
+      
+      <div className="flex-1 overflow-y-auto px-6 pt-32 pb-40 no-scrollbar">
 
         <div className="w-full bg-white rounded-3xl p-6 border border-gray-100 mb-6 shadow-sm">
           <label className="text-sm font-bold text-blue-500 mb-3 block">
@@ -253,26 +257,17 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
             这是哪里？
           </label>
           <div className="flex gap-3">
-            <div className="relative w-1/3 min-w-[120px]">
-              <select
-                value={selectedSpace}
-                onChange={e => {
-                  if (e.target.value === '__NEW__') {
-                    setShowNewSpaceModal(true);
-                  } else {
-                    setSelectedSpace(e.target.value);
-                  }
-                }}
-                className="w-full h-full appearance-none bg-gray-50 border-none rounded-2xl pl-4 pr-8 py-4 text-lg font-bold focus:outline-none focus:ring-0 transition-all text-black"
-              >
-                <option value="" className="text-gray-400">空间...</option>
-                {existingCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                <option value="__NEW__" className="text-blue-500 font-bold">+ 新建空间</option>
-              </select>
+            <button
+              onClick={() => setShowSpaceSelector(true)}
+              className="relative w-1/3 min-w-[120px] bg-gray-50 rounded-2xl pl-4 pr-8 py-4 text-left flex items-center active:scale-95 transition-all"
+            >
+              <span className={`text-lg font-bold truncate ${selectedSpace ? 'text-black' : 'text-gray-400'}`}>
+                {selectedSpace || '空间...'}
+              </span>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                 <i className="fa-solid fa-chevron-down text-xs"></i>
               </div>
-            </div>
+            </button>
             <input 
               ref={locationInputRef}
               type="text" 
@@ -415,6 +410,52 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
                 className="flex-1 py-3 bg-black text-white font-bold rounded-2xl active:scale-95 transition-all shadow-lg disabled:opacity-50"
               >
                 确定
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Space Selector Action Sheet */}
+      {showSpaceSelector && (
+        <div className="fixed inset-0 z-[100] flex flex-col justify-end bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowSpaceSelector(false)}>
+          <div className="bg-white rounded-t-3xl p-6 pb-10 w-full max-h-[70vh] flex flex-col shadow-2xl animate-in slide-in-from-bottom duration-300" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-gray-900">选择空间</h3>
+              <button 
+                onClick={() => setShowSpaceSelector(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors"
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto space-y-2 no-scrollbar">
+              {existingCategories.map(c => (
+                <button
+                  key={c}
+                  onClick={() => {
+                    setSelectedSpace(c);
+                    setShowSpaceSelector(false);
+                  }}
+                  className={`w-full py-4 px-6 rounded-2xl text-left font-bold text-lg transition-all flex items-center justify-between ${selectedSpace === c ? 'bg-black text-white' : 'bg-gray-50 text-black hover:bg-gray-100'}`}
+                >
+                  <span>{c}</span>
+                  {selectedSpace === c && <i className="fa-solid fa-check"></i>}
+                </button>
+              ))}
+              
+              <button
+                onClick={() => {
+                  setShowNewSpaceModal(true);
+                  setShowSpaceSelector(false);
+                }}
+                className="w-full py-4 px-6 rounded-2xl text-left font-bold text-lg text-blue-500 bg-blue-50 hover:bg-blue-100 transition-all flex items-center gap-3 mt-4"
+              >
+                <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm">
+                   <i className="fa-solid fa-plus"></i>
+                </div>
+                新建空间
               </button>
             </div>
           </div>
