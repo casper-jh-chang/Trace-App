@@ -28,6 +28,7 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
   const [selectedSpace, setSelectedSpace] = useState<string>('');
   const [showNewSpaceModal, setShowNewSpaceModal] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState('');
+  const [categoriesLoaded, setCategoriesLoaded] = useState(false);
 
   // Item Edit Management
   const [itemModalOpen, setItemModalOpen] = useState(false);
@@ -36,7 +37,10 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
 
   useEffect(() => {
     isMounted.current = true;
-    getCategories().then(setExistingCategories).catch(console.error);
+    getCategories().then(cats => {
+      setExistingCategories(cats);
+      setCategoriesLoaded(true);
+    }).catch(console.error);
     const lastSpace = localStorage.getItem('last_selected_space');
     if (lastSpace) setSelectedSpace(lastSpace);
     return () => { isMounted.current = false; };
@@ -97,16 +101,16 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
   };
 
   useEffect(() => {
-    if (initialImage) {
+    if (initialImage && categoriesLoaded) {
       triggerAnalysis(initialImage);
     }
-  }, [initialImage]);
+  }, [initialImage, categoriesLoaded]);
 
   const triggerAnalysis = async (base64: string) => {
     if (!isMounted.current) return;
     setAnalyzing(true);
     try {
-      const data = await analyzeImage(base64);
+      const data = await analyzeImage(base64, existingCategories);
       if (!isMounted.current) return;
       setDetectedItems(data.items || []);
       
@@ -127,6 +131,19 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
       alert("AI 扫描遇到一点问题");
     } finally {
       if (isMounted.current) setAnalyzing(false);
+    }
+  };
+
+  const handleCreateNewSpace = async () => {
+    if (!newSpaceName.trim()) return;
+    try {
+      await addCategory(newSpaceName.trim());
+      setExistingCategories(prev => [...prev, newSpaceName.trim()]);
+      setSelectedSpace(newSpaceName.trim());
+      setShowNewSpaceModal(false);
+      setNewSpaceName('');
+    } catch (e) {
+      alert("创建空间失败");
     }
   };
 
@@ -239,11 +256,18 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
             <div className="relative w-1/3 min-w-[120px]">
               <select
                 value={selectedSpace}
-                onChange={e => setSelectedSpace(e.target.value)}
+                onChange={e => {
+                  if (e.target.value === '__NEW__') {
+                    setShowNewSpaceModal(true);
+                  } else {
+                    setSelectedSpace(e.target.value);
+                  }
+                }}
                 className="w-full h-full appearance-none bg-gray-50 border-none rounded-2xl pl-4 pr-8 py-4 text-lg font-bold focus:outline-none focus:ring-0 transition-all text-black"
               >
                 <option value="" className="text-gray-400">空间...</option>
                 {existingCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="__NEW__" className="text-blue-500 font-bold">+ 新建空间</option>
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                 <i className="fa-solid fa-chevron-down text-xs"></i>
@@ -365,6 +389,9 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
               placeholder="物品名称"
               autoFocus
               className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-lg font-bold placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6"
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleSaveItem();
+              }}
             />
             
             <div className="flex gap-3">
@@ -388,6 +415,41 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
                 className="flex-1 py-3 bg-black text-white font-bold rounded-2xl active:scale-95 transition-all shadow-lg disabled:opacity-50"
               >
                 确定
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New Space Modal */}
+      {showNewSpaceModal && (
+        <div className="fixed inset-0 z-[110] bg-black/50 flex items-center justify-center p-6 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl p-6">
+            <h3 className="text-xl font-bold text-black mb-6">新建空间</h3>
+            <input 
+              type="text" 
+              value={newSpaceName}
+              onChange={e => setNewSpaceName(e.target.value)}
+              placeholder="例如：书房、客厅..."
+              autoFocus
+              className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-lg font-bold placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6"
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleCreateNewSpace();
+              }}
+            />
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowNewSpaceModal(false)}
+                className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-2xl active:scale-95 transition-all"
+              >
+                取消
+              </button>
+              <button 
+                onClick={handleCreateNewSpace}
+                disabled={!newSpaceName.trim()}
+                className="flex-1 py-3 bg-blue-500 text-white font-bold rounded-2xl active:scale-95 transition-all shadow-lg disabled:opacity-50"
+              >
+                创建
               </button>
             </div>
           </div>
