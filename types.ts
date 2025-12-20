@@ -35,6 +35,7 @@ export interface SceneRecord {
   fullImageUrl: string; // 存储压缩后的全景照片
   timestamp: number;
   locationCategory: string; // 用户输入的大位置，如“主卧衣柜”
+  superCategory?: string; // 用户自定义的超级分类，如“书房”、“客厅”
   items: AIItem[]; // 该照片中识别到的所有物体元数据
 }
 
