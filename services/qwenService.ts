@@ -252,140 +252,145 @@ export const queryInventoryQwen = async (
     }).join('\n')
     : "当前没有任何视觉记忆记录。";
 
-  // --- STEP 1: RETRIEVAL (Search) ---
-  // Force a dedicated retrieval step to ensure we don't miss items
-  const foundItems = await searchItemsInContext(query, memoryContext);
-
-  // Construct a context specifically about what we found
-  const foundContext = foundItems.length > 0
-    ? `【检索结果】我在记忆库中发现了以下相关物品：${JSON.stringify(foundItems)}。请务必基于这些检索结果回答用户，并填充 matchedItemDetails。`
-    : `【检索结果】我在记忆库中没有发现明确匹配的物品。`;
-
-  const systemInstruction = `你是一个“视觉记忆”管家。今天是 ${new Date().toLocaleDateString()}。
-  你的回答必须基于用户提供的“场景记忆”和“检索结果”。
-  
-  【回答规则】
-  1. 如果【检索结果】中有物品，你必须告诉用户这些物品在什么位置。
-  2. 如果【检索结果】为空：
-     - 首先回答“我没在记忆中找到[物品名]”。
-     - **关键优化**：如果用户询问“可能在哪”或寻求建议，请基于常识提供推测。例如：“但我建议你去厨房或储藏室找找。”
-     - 严禁编造记忆。
-  3. 你的回答必须非常简短。**严禁在回答中提及“场景ID”、“标记”或“ID”等技术术语**。
-  4. 必须返回 matchedSceneIds。
-  5. **关键点**：必须返回 matchedItemDetails 列表，明确指明在哪个场景里匹配到了哪个具体物品名称（必须与原始数据完全一致）。
-  6. **关于保质期**：场景记录中有“记录日期”和物品的“原始保质期”。请根据“今天是...”主动计算物品是否过期或临期，并在回答中温馨提醒用户（例如：“注意：记录于3天前的牛奶可能快过期了”）。
-  
-  【重要】你必须只输出标准的 JSON 格式，严禁输出任何其他文本或 Markdown 标记。
-  【思维链】在生成JSON之前，你可以先思考，但必须将思考过程放入JSON的 "_thought" 字段中，不要在JSON之外输出任何内容。
-  
-  请以JSON格式返回，格式如下：
-  {
-    "_thought": "你的思考过程...",
-    "answer": "回答内容",
-    "matchedSceneIds": ["场景ID1", "场景ID2"],
-    "matchedItemDetails": [{"sceneId": "场景ID", "itemName": "物品名"}]
-  }`;
-
-  const messages = [
-    {
-      role: "system",
-      content: systemInstruction
-    },
-    // Keep only the last 1 turn of history (last 2 messages) as requested
-    ...chatHistory.slice(-2).map(m => ({
-      role: m.role === 'model' ? 'assistant' : m.role,
-      content: m.content
-    })),
-    {
-      role: "user",
-      content: `用户提问: ${query}\n\n我的视觉记忆内容:\n${memoryContext}\n\n${foundContext}`
-    }
-  ];
-
-  const payload = {
-    model: "qwen-plus", // Use qwen-plus for text/chat tasks, or qwen-max
-    input: {
-      messages: messages
-    },
-    parameters: {
-      result_format: "message"
-    }
-  };
-
-  try {
-    // Qwen text generation endpoint is different: 
-    // Actually qwen-vl models can handle text only too, but qwen-plus is better for pure text logic.
-    // Endpoint: https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation
-    // ALWAYS use proxy path in production to avoid CORS
-    const TEXT_API_URL = "/dashscope-api/api/v1/services/aigc/text-generation/generation";
-
-    const response = await fetch(TEXT_API_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Qwen Text API Error Body:", errorText);
-      throw new Error(`Qwen Text API Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const content = data.output?.choices?.[0]?.message?.content;
-
-    // Robust JSON extraction
-    let cleanContent = content.replace(/```json\n?|```/g, "").trim();
-
-    // Attempt to extract JSON if there's extra text
-    const firstBrace = cleanContent.indexOf('{');
-    const lastBrace = cleanContent.lastIndexOf('}');
-    if (firstBrace !== -1 && lastBrace !== -1) {
-      cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
-    }
-
-    let parsedResponse: ChatAIResponse;
+  // Internal function to run a single query attempt
+  const runAttempt = async (): Promise<ChatAIResponse> => {
     try {
-      parsedResponse = JSON.parse(cleanContent) as ChatAIResponse;
-    } catch (parseError) {
-      console.warn("JSON parse failed, falling back to raw text:", cleanContent);
-      // Fallback: treat the entire content as the answer
-      parsedResponse = {
-        answer: content, // Use original content
+      // --- STEP 1: RETRIEVAL (Search) ---
+      const foundItems = await searchItemsInContext(query, memoryContext);
+
+      // Construct a context specifically about what we found
+      const foundContext = foundItems.length > 0
+        ? `【检索结果】我在记忆库中发现了以下相关物品：${JSON.stringify(foundItems)}。请务必基于这些检索结果回答用户，并填充 matchedItemDetails。`
+        : `【检索结果】我在记忆库中没有发现明确匹配的物品。`;
+
+      const systemInstruction = `你是一个“视觉记忆”管家。今天是 ${new Date().toLocaleDateString()}。
+      你的回答必须基于用户提供的“场景记忆”和“检索结果”。
+      
+      【回答规则】
+      1. 如果【检索结果】中有物品，你必须告诉用户这些物品在什么位置。
+      2. 如果【检索结果】为空：
+         - 首先回答“我没在记忆中找到[物品名]”。
+         - **关键优化**：如果用户询问“可能在哪”或寻求建议，请基于常识提供推测。例如：“但我建议你去厨房或储藏室找找。”
+         - 严禁编造记忆。
+      3. 你的回答必须非常简短。**严禁在回答中提及“场景ID”、“标记”或“ID”等技术术语**。
+      4. 必须返回 matchedSceneIds。
+      5. **关键点**：必须返回 matchedItemDetails 列表，明确指明在哪个场景里匹配到了哪个具体物品名称（必须与原始数据完全一致）。
+      6. **关于保质期**：场景记录中有“记录日期”和物品的“原始保质期”。请根据“今天是...”主动计算物品是否过期或临期，并在回答中温馨提醒用户（例如：“注意：记录于3天前的牛奶可能快过期了”）。
+      
+      【重要】你必须只输出标准的 JSON 格式，严禁输出任何其他文本或 Markdown 标记。
+      【思维链】在生成JSON之前，你可以先思考，但必须将思考过程放入JSON的 "_thought" 字段中，不要在JSON之外输出任何内容。
+      
+      请以JSON格式返回，格式如下：
+      {
+        "_thought": "你的思考过程...",
+        "answer": "回答内容",
+        "matchedSceneIds": ["场景ID1", "场景ID2"],
+        "matchedItemDetails": [{"sceneId": "场景ID", "itemName": "物品名"}]
+      }`;
+
+      const messages = [
+        {
+          role: "system",
+          content: systemInstruction
+        },
+        // Keep only the last 1 turn of history (last 2 messages)
+        ...chatHistory.slice(-2).map(m => ({
+          role: m.role === 'model' ? 'assistant' : m.role,
+          content: m.content
+        })),
+        {
+          role: "user",
+          content: `用户提问: ${query}\n\n我的视觉记忆内容:\n${memoryContext}\n\n${foundContext}`
+        }
+      ];
+
+      const payload = {
+        model: "qwen-plus",
+        input: { messages: messages },
+        parameters: { result_format: "message" }
+      };
+
+      // ALWAYS use proxy path in production to avoid CORS
+      const TEXT_API_URL = "/dashscope-api/api/v1/services/aigc/text-generation/generation";
+
+      const response = await fetch(TEXT_API_URL, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Qwen Text API Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.output?.choices?.[0]?.message?.content;
+      let cleanContent = content.replace(/```json\n?|```/g, "").trim();
+
+      const firstBrace = cleanContent.indexOf('{');
+      const lastBrace = cleanContent.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
+      }
+
+      try {
+        return JSON.parse(cleanContent) as ChatAIResponse;
+      } catch (parseError) {
+        console.warn("JSON parse failed, falling back to raw text:", cleanContent);
+        return {
+          answer: content,
+          matchedSceneIds: [],
+          matchedItemDetails: []
+        };
+      }
+    } catch (e) {
+      console.error("Attempt failed:", e);
+      // Return a dummy error response that won't be picked if another one succeeds
+      return {
+        answer: "系统内部错误",
         matchedSceneIds: [],
         matchedItemDetails: []
       };
     }
+  };
 
-    // --- RE-VERIFICATION LOGIC ---
-    // If we have matched items, try to get a better bounding box using the visual model on-demand
-    if (parsedResponse.matchedItemDetails && parsedResponse.matchedItemDetails.length > 0) {
-      // Limit to first 3 items to avoid excessive API calls
-      const itemsToVerify = parsedResponse.matchedItemDetails.slice(0, 3);
+  // --- EXECUTE DUAL ATTEMPTS ---
+  // Run 2 attempts in parallel to improve recall
+  const attempts = [runAttempt(), runAttempt()];
+  const results = await Promise.all(attempts);
 
-      await Promise.all(itemsToVerify.map(async (detail) => {
-        const scene = scenes.find(s => s.id === detail.sceneId);
-        if (scene && scene.fullImageUrl) {
-          // Call Qwen VL Max to re-locate
-          const newBox = await locateItemInScene(scene.fullImageUrl, detail.itemName);
-          if (newBox) {
-            detail.box_2d = newBox;
-          }
+  // Select the best result
+  // Criteria:
+  // 1. More matched items is better.
+  // 2. If equal, prefer the one that isn't an error message (length of answer > 0).
+  const bestResponse = results.reduce((best, current) => {
+    const bestCount = best.matchedItemDetails?.length || 0;
+    const currentCount = current.matchedItemDetails?.length || 0;
+
+    if (currentCount > bestCount) return current;
+    if (currentCount < bestCount) return best;
+
+    // If counts are equal, maybe prefer the longer answer? or just first one.
+    return best;
+  });
+
+  // --- RE-VERIFICATION LOGIC ---
+  // Perform expensive visual re-verification only on the selected best response
+  if (bestResponse.matchedItemDetails && bestResponse.matchedItemDetails.length > 0) {
+    const itemsToVerify = bestResponse.matchedItemDetails.slice(0, 3);
+    await Promise.all(itemsToVerify.map(async (detail) => {
+      const scene = scenes.find(s => s.id === detail.sceneId);
+      if (scene && scene.fullImageUrl) {
+        const newBox = await locateItemInScene(scene.fullImageUrl, detail.itemName);
+        if (newBox) {
+          detail.box_2d = newBox;
         }
-      }));
-    }
-
-    return parsedResponse;
-
-  } catch (e) {
-    console.error("Qwen Chat Error:", e);
-    return {
-      answer: "抱歉，我暂时无法连接到大脑（Qwen服务出错）。",
-      matchedSceneIds: [],
-      matchedItemDetails: []
-    };
+      }
+    }));
   }
+
+  return bestResponse;
 };
