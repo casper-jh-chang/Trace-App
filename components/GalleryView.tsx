@@ -380,8 +380,8 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
             </button>
           </div>
 
-          <div className="flex-1 flex flex-col items-center justify-center p-6 overflow-y-auto">
-            <div className="w-full max-w-sm bg-white rounded-3xl overflow-hidden mb-8 shadow-2xl">
+          <div className="flex-1 overflow-y-auto flex flex-col items-center p-6">
+            <div className="w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl my-auto">
               <img src={selectedScene.fullImageUrl} className="w-full h-auto" />
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
