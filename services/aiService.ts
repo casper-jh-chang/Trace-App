@@ -23,11 +23,11 @@ export const getAIModel = (): AIModelType => {
 // Initialize model from storage
 getAIModel();
 
-export const analyzeImage = async (base64Image: string): Promise<AIAnalysisResult> => {
+export const analyzeImage = async (base64Image: string, knownSpaces: string[] = []): Promise<AIAnalysisResult> => {
   if (currentModel === 'qwen') {
-    return analyzeImageQwen(base64Image);
+    return analyzeImageQwen(base64Image, knownSpaces);
   } else {
-    return analyzeImageGemini(base64Image);
+    return analyzeImageGemini(base64Image, knownSpaces);
   }
 };
 

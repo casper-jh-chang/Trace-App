@@ -2,10 +2,14 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIAnalysisResult, SceneRecord, ChatMessage, SceneType } from "../types";
 
-export const analyzeImage = async (base64Image: string): Promise<AIAnalysisResult> => {
+export const analyzeImage = async (base64Image: string, knownSpaces: string[] = []): Promise<AIAnalysisResult> => {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "";
   const ai = new GoogleGenAI({ apiKey });
   const MAX_REPETITIONS = 4;
+
+  const spacesContext = knownSpaces.length > 0
+    ? `已知空间列表：${knownSpaces.join(', ')}。请优先从列表中选择最匹配的空间。如果都不匹配，请根据画面内容推测一个新的空间名称（如：书房、卧室、厨房、客厅）。`
+    : `请根据画面内容，推测并总结这是一个什么空间（例如：书房、卧室、厨房、客厅），作为 suggestedSpace 返回。`;
 
   const scanTask = async () => {
     try {
@@ -24,7 +28,8 @@ export const analyzeImage = async (base64Image: string): Promise<AIAnalysisResul
                 text: `你是一个极度细致的收纳识别专家。请扫描这张照片，找出其中所有的**独立小物品**。
                 【铁律】不要识别容器（如抽屉、盒子、柜子本身），只识别里面的内容物。
                 请返回物品名称、分类、位置描述、2D坐标[xmin, ymin, xmax, ymax]（0-1000归一化）以及预计保质期（如果是食品）。
-                同时，请根据画面内容，推测并总结这是一个什么地方（例如：书房书桌、冰箱内部、客厅茶几、卧室床头柜等），作为 suggestedLocation 返回。`,
+                同时，${spacesContext}
+                然后，推测这是一个什么具体位置（例如：书桌、冰箱内部、茶几、床头柜），作为 suggestedLocation 返回。**注意：suggestedLocation 不要包含 suggestedSpace 的名称**。`,
               },
             ],
           },
@@ -34,6 +39,7 @@ export const analyzeImage = async (base64Image: string): Promise<AIAnalysisResul
           responseSchema: {
             type: Type.OBJECT,
             properties: {
+              suggestedSpace: { type: Type.STRING },
               suggestedLocation: { type: Type.STRING },
               items: {
                 type: Type.ARRAY,

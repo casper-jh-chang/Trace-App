@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { analyzeImage } from '../services/aiService';
-import { getCategories } from '../services/dbService';
+import { getCategories, addCategory } from '../services/dbService';
 import { SceneRecord, AIItem, SceneType } from '../types';
 
 interface StorageViewProps {
@@ -26,6 +26,8 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
   // Space Management
   const [existingCategories, setExistingCategories] = useState<string[]>([]);
   const [selectedSpace, setSelectedSpace] = useState<string>('');
+  const [showNewSpaceModal, setShowNewSpaceModal] = useState(false);
+  const [newSpaceName, setNewSpaceName] = useState('');
 
   // Item Edit Management
   const [itemModalOpen, setItemModalOpen] = useState(false);
@@ -108,6 +110,16 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
       if (!isMounted.current) return;
       setDetectedItems(data.items || []);
       
+      // Auto-select space if suggested and exists in current categories
+      if (data.suggestedSpace) {
+        // Try to find a matching category (case-insensitive fuzzy match could be better but exact for now)
+        // Or simply if it's in the list
+        const match = existingCategories.find(c => c === data.suggestedSpace);
+        if (match) {
+          setSelectedSpace(match);
+        }
+      }
+
       if (data.suggestedLocation && !batchLocation) {
         setBatchLocation(data.suggestedLocation);
       }

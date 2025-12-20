@@ -46,7 +46,8 @@ export interface ChatMessage {
 
 export interface AIAnalysisResult {
   items: AIItem[];
-  suggestedLocation?: string; // AI 猜测的场景名称
+  suggestedLocation?: string; // AI 猜测的场景名称（具体的家具/角落，不含空间名）
+  suggestedSpace?: string; // AI 猜测的所属空间（如：书房、卧室、厨房）
 }
 
 export interface ChatAIResponse {
