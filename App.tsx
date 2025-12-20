@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Navigation from './components/Navigation';
+import HomeView from './components/HomeView';
 import StorageView from './components/StorageView';
 import ChatSearch from './components/ChatSearch';
 import GalleryView from './components/GalleryView';
@@ -10,7 +11,7 @@ import { getAllScenes, addScene, deleteScene } from './services/dbService';
 const STORAGE_KEY = 'smart_organize_items_v2';
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'home' | 'storage' | 'menu' | 'chat' | 'gallery'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'storage' | 'menu' | 'chat' | 'gallery'>('gallery');
   const [items, setItems] = useState<StorageItem[]>([]);
   const [scenes, setScenes] = useState<SceneRecord[]>([]);
   const [preselectedScene, setPreselectedScene] = useState<SceneType | null>(null);
@@ -132,6 +133,13 @@ const App: React.FC = () => {
       />
 
       <main className="flex-1 overflow-hidden h-full">
+        {activeTab === 'home' && (
+          <HomeView 
+            onStartChat={startChat} 
+            onStartCamera={() => setIsMediaModalOpen(true)}
+            onOpenMenu={() => setActiveTab('gallery')}
+          />
+        )}
         {activeTab === 'storage' && (
           <div className="h-full">
             <StorageView 
