@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { queryInventory, ChatAIResponse } from '../services/geminiService';
-import { SceneRecord, ChatMessage, AIItem } from '../types';
+import { queryInventory } from '../services/aiService';
+import { SceneRecord, ChatMessage, AIItem, ChatAIResponse } from '../types';
 
 interface ChatSearchProps {
   scenes: SceneRecord[];

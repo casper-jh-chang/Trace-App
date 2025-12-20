@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { analyzeImage } from '../services/geminiService';
+import { analyzeImage } from '../services/aiService';
 import { SceneRecord, AIItem } from '../types';
 
 interface StorageViewProps {

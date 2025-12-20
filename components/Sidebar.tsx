@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { SceneType } from '../types';
+import { AIModelType } from '../services/aiService';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -8,9 +9,11 @@ interface SidebarProps {
   onSelectScene: (scene: SceneType) => void;
   itemsCountByScene: Record<string, number>;
   onOpenPoster?: () => void;
+  currentModel: AIModelType;
+  onSelectModel: (model: AIModelType) => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onSelectScene, itemsCountByScene, onOpenPoster }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onSelectScene, itemsCountByScene, onOpenPoster, currentModel, onSelectModel }) => {
   const getSceneIcon = (scene: SceneType) => {
     switch (scene) {
       case SceneType.KITCHEN: return 'fa-utensils';
@@ -56,6 +59,32 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, onSelectScene, items
         </div>
 
         <div className="p-6 border-t border-gray-100">
+          <div className="mb-4">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">AI 模型</h3>
+            <div className="flex bg-gray-100 p-1 rounded-xl">
+              <button
+                onClick={() => onSelectModel('qwen')}
+                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+                  currentModel === 'qwen' 
+                    ? 'bg-white text-black shadow-sm' 
+                    : 'text-gray-500 hover:text-black'
+                }`}
+              >
+                通义千问
+              </button>
+              <button
+                onClick={() => onSelectModel('gemini')}
+                className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+                  currentModel === 'gemini' 
+                    ? 'bg-white text-black shadow-sm' 
+                    : 'text-gray-500 hover:text-black'
+                }`}
+              >
+                Gemini
+              </button>
+            </div>
+          </div>
+
           <button 
             onClick={onOpenPoster}
             className="w-full flex items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors mb-4"

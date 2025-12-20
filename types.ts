@@ -46,3 +46,9 @@ export interface ChatMessage {
 export interface AIAnalysisResult {
   items: AIItem[];
 }
+
+export interface ChatAIResponse {
+  answer: string;
+  matchedSceneIds: string[];
+  matchedItemDetails: Array<{ sceneId: string, itemName: string }>;
+}

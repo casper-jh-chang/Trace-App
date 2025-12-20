@@ -8,6 +8,13 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
+        proxy: {
+          '/dashscope-api': {
+            target: 'https://dashscope.aliyuncs.com',
+            changeOrigin: true,
+            rewrite: (path) => path.replace(/^\/dashscope-api/, '')
+          }
+        }
       },
       plugins: [react()],
       define: {

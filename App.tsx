@@ -1,27 +1,33 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Navigation from './components/Navigation';
 import HomeView from './components/HomeView';
 import StorageView from './components/StorageView';
 import ChatSearch from './components/ChatSearch';
 import GalleryView from './components/GalleryView';
 import Sidebar from './components/Sidebar';
-import { StorageItem, SceneType } from './types';
+import { StorageItem, SceneType, SceneRecord } from './types';
+import { getAIModel, setAIModel, AIModelType } from './services/aiService';
+import { getAllScenes, addScene, deleteScene } from './services/dbService';
 
 const STORAGE_KEY = 'smart_organize_items_v2';
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'home' | 'storage' | 'menu' | 'chat'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'storage' | 'menu' | 'chat' | 'gallery' | 'poster'>('home');
   const [items, setItems] = useState<StorageItem[]>([]);
+  const [scenes, setScenes] = useState<SceneRecord[]>([]);
+  const [preselectedScene, setPreselectedScene] = useState<SceneType | null>(null);
   const [initialChatQuery, setInitialChatQuery] = useState('');
   const [liveAutoStart, setLiveAutoStart] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [currentAIModel, setCurrentAIModel] = useState<AIModelType>(getAIModel());
   
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
   const [pendingImage, setPendingImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // Load legacy items
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
@@ -30,6 +36,8 @@ const App: React.FC = () => {
         console.error("Failed to load items", e);
       }
     }
+    // Load scenes from DB
+    getAllScenes().then(setScenes).catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -43,13 +51,13 @@ const App: React.FC = () => {
     }, {} as Record<string, number>);
   }, [items]);
 
-  const handleAddItems = (newItems: StorageItem[]) => {
-    setItems(prev => [...newItems, ...prev]);
-    const uniqueScenes = Array.from(new Set(newItems.map(item => item.scene)));
-    if (uniqueScenes.length === 1) {
-      setPreselectedScene(uniqueScenes[0]);
-    } else {
-      setPreselectedScene(null);
+  const handleAddScene = async (newScene: SceneRecord) => {
+    try {
+      await addScene(newScene);
+      setScenes(prev => [...prev, newScene]);
+      setActiveTab('gallery');
+    } catch (e) {
+      console.error("Failed to add scene", e);
     }
   };
 
@@ -106,6 +114,11 @@ const App: React.FC = () => {
         onSelectScene={(scene) => {}} 
         itemsCountByScene={{}} 
         onOpenPoster={() => { setActiveTab('poster'); setIsSidebarOpen(false); }}
+        currentModel={currentAIModel}
+        onSelectModel={(model) => {
+          setAIModel(model);
+          setCurrentAIModel(model);
+        }}
       />
 
       {isMediaModalOpen && (

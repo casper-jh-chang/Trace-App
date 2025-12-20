@@ -63,20 +63,14 @@ export const analyzeImage = async (base64Image: string): Promise<AIAnalysisResul
   return allResults.reduce((best, current) => (current.items?.length || 0) > (best.items?.length || 0) ? current : best, { items: [] } as AIAnalysisResult);
 };
 
-export interface ChatAIResponse {
-  answer: string;
-  matchedSceneIds: string[];
-  matchedItemDetails: Array<{ sceneId: string, itemName: string }>;
-}
-
 export const queryInventory = async (
-  query: string, 
-  scenes: SceneRecord[], 
+  query: string,
+  scenes: SceneRecord[],
   chatHistory: ChatMessage[]
 ): Promise<ChatAIResponse> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
-  const memoryContext = scenes.length > 0 
+
+  const memoryContext = scenes.length > 0
     ? scenes.map(s => `[场景ID:${s.id}, 位置:${s.locationCategory}] 包含物品: ${s.items.map(i => i.itemName).join(', ')}`).join('\n')
     : "当前没有任何视觉记忆记录。";
 
