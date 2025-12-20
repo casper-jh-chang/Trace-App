@@ -262,11 +262,41 @@ app.delete('/api/chats', async (req, res) => {
   }
 });
 
+// --- Proxy for Aliyun Dashscope ---
+app.post('/dashscope-api/*path', async (req, res) => {
+  try {
+    // Remove the /dashscope-api prefix to get the real path
+    // e.g. /dashscope-api/api/v1/... -> /api/v1/...
+    const realPath = req.originalUrl.replace(/^\/dashscope-api/, '');
+    const targetUrl = 'https://dashscope.aliyuncs.com' + realPath;
+
+    console.log('[Proxy] Forwarding to:', targetUrl);
+
+    const response = await fetch(targetUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': req.headers.authorization,
+        'Content-Type': 'application/json',
+        // Forward other headers if needed
+      },
+      body: JSON.stringify(req.body)
+    });
+
+    // Forward status and body
+    res.status(response.status);
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error('Proxy Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // The "catchall" handler: for any request that doesn't
 // match one above, send back React's index.html file.
 app.get('*all', (req, res) => {
   // Don't intercept API requests
-  if (req.path.startsWith('/api')) {
+  if (req.path.startsWith('/api') || req.path.startsWith('/dashscope-api')) {
     return res.status(404).json({ error: 'Not Found' });
   }
   res.sendFile(path.join(__dirname, '../dist/index.html'));
