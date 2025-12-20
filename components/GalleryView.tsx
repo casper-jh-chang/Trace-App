@@ -6,9 +6,10 @@ interface GalleryViewProps {
   scenes: SceneRecord[];
   onDelete: (id: string) => void;
   onUpdate: (scene: SceneRecord) => void;
+  onReload?: () => void;
 }
 
-const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate }) => {
+const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, onReload }) => {
   const [selectedScene, setSelectedScene] = useState<SceneRecord | null>(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [showAddCategory, setShowAddCategory] = useState(false);
@@ -253,8 +254,8 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
           await updateCategoryName(managingCategory, renameInput.trim());
           // Refresh everything
           await loadCategories();
-          if (onUpdate) {
-              // Trigger a parent update if needed
+          if (onReload) {
+              onReload();
           }
           setManagingCategory(null);
           showToast("改名成功 (请刷新页面查看最新状态)"); 
@@ -269,6 +270,9 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
       try {
           await updateCategoryName(managingCategory, mergeTarget);
           await loadCategories();
+          if (onReload) {
+              onReload();
+          }
           setManagingCategory(null);
           showToast("合并成功 (请刷新页面查看最新状态)");
       } catch (e) {

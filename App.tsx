@@ -181,6 +181,7 @@ const App: React.FC = () => {
               onUpdate={(updatedScene) => {
                  setScenes(prev => prev.map(s => s.id === updatedScene.id ? updatedScene : s));
               }}
+              onReload={() => getAllScenes().then(setScenes)}
             />
           </div>
         )}
