@@ -24,6 +24,7 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const hasSentInitialQuery = useRef(false);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -69,7 +70,10 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
   }, [inputValue, loading, messages, scenes]);
 
   useEffect(() => {
-    if (initialQuery) handleSend(initialQuery);
+    if (initialQuery && !hasSentInitialQuery.current) {
+      hasSentInitialQuery.current = true;
+      handleSend(initialQuery);
+    }
   }, [initialQuery]);
 
   return (
