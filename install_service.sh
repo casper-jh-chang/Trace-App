@@ -8,10 +8,10 @@ set -e
 echo "🚀 开始部署抽屉 (Drawer) 到 Systemd..."
 
 # 1. 检查 Node.js 环境
-if ! command -v node &> /dev/null; then
-    echo "❌ 未检测到 Node.js，请先安装 Node.js (v18+)"
-    exit 1
-fi
+# if ! command -v node &> /dev/null; then
+#     echo "❌ 未检测到 Node.js，请先安装 Node.js (v18+)"
+#     exit 1
+# fi
 
 # 2. 安装依赖与构建
 echo "📦 安装依赖..."
