@@ -95,8 +95,16 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
     }).catch(console.error);
   }, [scenes]);
 
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+  };
+
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    scrollToBottom();
+    const timer = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timer);
   }, [messages, loading]);
 
   const handleSend = useCallback(async (text?: string) => {
@@ -229,6 +237,7 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
             <span className="text-blue-500 text-sm font-bold tracking-tight">正在帮你想...</span>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       <div className="fixed bottom-24 left-0 w-full px-6 z-40">
