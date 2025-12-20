@@ -6,20 +6,47 @@ import { SceneRecord, AIItem } from '../types';
 interface StorageViewProps {
   onAddScene: (scene: SceneRecord) => void;
   initialImage?: string | null;
+  existingScenes: SceneRecord[];
+  onDeleteScene: (id: string) => Promise<void>;
 }
 
-const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage }) => {
+const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, existingScenes, onDeleteScene }) => {
   const [image, setImage] = useState<string | null>(initialImage || null);
   const [analyzing, setAnalyzing] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [batchLocation, setBatchLocation] = useState(''); 
   const [detectedItems, setDetectedItems] = useState<AIItem[]>([]);
   const isMounted = useRef(true);
+  const locationInputRef = useRef<HTMLInputElement>(null);
+  const [needFocusLocation, setNeedFocusLocation] = useState(false);
+  const [showConflictModal, setShowConflictModal] = useState(false);
+  const [conflictId, setConflictId] = useState<string | null>(null);
 
   useEffect(() => {
     isMounted.current = true;
     return () => { isMounted.current = false; };
   }, []);
+
+  useEffect(() => {
+    if (!needFocusLocation) return;
+    const start = Date.now();
+    const tryFocus = () => {
+      const el = locationInputRef.current;
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus();
+        el.select();
+        setNeedFocusLocation(false);
+        return;
+      }
+      if (Date.now() - start < 1000) {
+        requestAnimationFrame(tryFocus);
+      } else {
+        setNeedFocusLocation(false);
+      }
+    };
+    tryFocus();
+  }, [needFocusLocation]);
 
   const generateId = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
@@ -70,15 +97,28 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage }) =
 
   const handleSaveScene = async () => {
     if (!image || syncing) return;
-    setSyncing(true);
     
+    const locationName = batchLocation.trim() || '未命名位置';
+    const existing = existingScenes.find(s => s.locationCategory === locationName);
+    
+    if (existing) {
+      setConflictId(existing.id);
+      setShowConflictModal(true);
+      return;
+    }
+
+    await performSave(locationName);
+  };
+
+  const performSave = async (locationName: string) => {
+    setSyncing(true);
     try {
-      const compressedImage = await resizeImage(image);
+      const compressedImage = await resizeImage(image!); // image checked before
       const newScene: SceneRecord = {
         id: generateId(),
         fullImageUrl: compressedImage,
         timestamp: Date.now(),
-        locationCategory: batchLocation || '未命名位置',
+        locationCategory: locationName,
         items: detectedItems
       };
       onAddScene(newScene);
@@ -87,6 +127,22 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage }) =
     } finally {
       setSyncing(false);
     }
+  };
+
+  const handleConfirmOverwrite = async () => {
+    if (conflictId) {
+      await onDeleteScene(conflictId);
+    }
+    setShowConflictModal(false);
+    setConflictId(null);
+    const locationName = batchLocation.trim() || '未命名位置';
+    await performSave(locationName);
+  };
+
+  const handleCancelOverwrite = () => {
+    setShowConflictModal(false);
+    setConflictId(null);
+    setNeedFocusLocation(true);
   };
 
   return (
@@ -100,6 +156,7 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage }) =
             这是哪里？
           </label>
           <input 
+            ref={locationInputRef}
             type="text" 
             value={batchLocation}
             onChange={e => setBatchLocation(e.target.value)}
@@ -160,6 +217,31 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage }) =
               </>
             )}
           </button>
+        </div>
+      )}
+
+      {showConflictModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-6 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">位置重复啦</h3>
+            <p className="text-gray-500 mb-6 text-base font-medium">
+              “<span className="text-black font-bold">{batchLocation}</span>”已经存在了，要覆盖旧的照片吗？
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={handleCancelOverwrite}
+                className="flex-1 py-4 bg-gray-100 text-gray-700 font-bold rounded-2xl active:scale-95 transition-all text-lg"
+              >
+                我去改名
+              </button>
+              <button 
+                onClick={handleConfirmOverwrite}
+                className="flex-1 py-4 bg-black text-white font-bold rounded-2xl active:scale-95 transition-all text-lg shadow-lg"
+              >
+                覆盖它
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

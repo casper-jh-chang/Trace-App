@@ -80,8 +80,8 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeleteScene = async (id: string) => {
-    if (!window.confirm('确定要删除这段记忆吗？相关识别记录也将消失。')) return;
+  const handleDeleteScene = async (id: string, skipConfirm = false) => {
+    if (!skipConfirm && !window.confirm('确定要删除这段记忆吗？相关识别记录也将消失。')) return;
     try {
       await deleteScene(id);
       setScenes(prev => prev.filter(s => s.id !== id));
@@ -187,7 +187,12 @@ const App: React.FC = () => {
             >
               <i className="fa-solid fa-house"></i>
             </button>
-            <StorageView onAddScene={handleAddScene} initialImage={pendingImage} />
+            <StorageView 
+              onAddScene={handleAddScene} 
+              initialImage={pendingImage} 
+              existingScenes={scenes}
+              onDeleteScene={(id) => handleDeleteScene(id, true)}
+            />
           </div>
         )}
         {activeTab === 'chat' && (
