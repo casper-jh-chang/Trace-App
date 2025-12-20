@@ -277,7 +277,8 @@ export const queryInventoryQwen = async (
       role: "system",
       content: systemInstruction
     },
-    ...chatHistory.map(m => ({
+    // Keep only the last 1 turn of history (last 2 messages) as requested
+    ...chatHistory.slice(-2).map(m => ({
       role: m.role === 'model' ? 'assistant' : m.role,
       content: m.content
     })),
