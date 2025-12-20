@@ -8,10 +8,13 @@ interface StorageViewProps {
   initialImage?: string | null;
 }
 
+const COMMON_LOCATIONS = ['冰箱', '冰箱侧门', '衣柜抽屉', '书架', '储物间', '地下室货架', '床头柜'];
+
 const StorageView: React.FC<StorageViewProps> = ({ onAddItems, initialImage }) => {
   const [image, setImage] = useState<string | null>(initialImage || null);
   const [analyzing, setAnalyzing] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [batchLocation, setBatchLocation] = useState(''); // 全局收纳位置
   const [detectedItems, setDetectedItems] = useState<(AIItem & { croppedUrl?: string })[]>([]);
   const isMounted = useRef(true);
 
@@ -20,7 +23,6 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddItems, initialImage }) =
     return () => { isMounted.current = false; };
   }, []);
 
-  // 兼容性更好的 ID 生成器
   const generateId = () => {
     try {
       if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -55,7 +57,6 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddItems, initialImage }) =
       canvas.width = width;
       canvas.height = height;
       ctx.drawImage(img, x, y, width, height, 0, 0, width, height);
-      // 降低图片质量以节省空间
       return canvas.toDataURL('image/jpeg', 0.7);
     } catch (e) {
       console.error("Crop failed", e);
@@ -116,20 +117,26 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddItems, initialImage }) =
     if (detectedItems.length === 0 || syncing) return;
     setSyncing(true);
     
-    // 微小延迟确保 UI 渲染 Loading
     setTimeout(() => {
       try {
-        const newStorageItems: StorageItem[] = detectedItems.map(item => ({
-          id: generateId(),
-          name: item.itemName || '未命名物品',
-          category: item.category || '通用',
-          scene: item.scene || SceneType.OTHER,
-          locationDetail: item.preciseLocation || '未知位置',
-          remarks: item.remarks || '',
-          imageUrl: item.croppedUrl || '', 
-          fullImageUrl: '', // 关键：不再保存巨大的原始全图，以节省空间
-          timestamp: Date.now(),
-        }));
+        const newStorageItems: StorageItem[] = detectedItems.map(item => {
+          // 合并全局位置和识别的具体位置
+          const finalLocation = batchLocation 
+            ? `${batchLocation} - ${item.preciseLocation || '具体位置'}`
+            : (item.preciseLocation || '未知位置');
+
+          return {
+            id: generateId(),
+            name: item.itemName || '未命名物品',
+            category: item.category || '通用',
+            scene: item.scene || SceneType.OTHER,
+            locationDetail: finalLocation,
+            remarks: item.remarks || '',
+            imageUrl: item.croppedUrl || '', 
+            fullImageUrl: '', 
+            timestamp: Date.now(),
+          };
+        });
         
         onAddItems(newStorageItems);
       } catch (err) {
@@ -154,6 +161,32 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddItems, initialImage }) =
       <div className="px-4 pt-6 pb-32">
         <h1 className="text-2xl font-bold text-black mb-6">收纳预览</h1>
 
+        {/* Global Batch Location Input */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-8">
+          <label className="text-[11px] font-bold text-gray-400 uppercase tracking-tight block mb-2">收纳场景/容器 (全局应用)</label>
+          <div className="relative">
+            <i className="fa-solid fa-box-archive absolute left-3 top-1/2 -translate-y-1/2 text-gray-300"></i>
+            <input 
+              type="text" 
+              value={batchLocation}
+              onChange={e => setBatchLocation(e.target.value)}
+              placeholder="例如：冰箱冷藏室、玄关抽屉..."
+              className="w-full bg-gray-50 border-none rounded-lg pl-10 pr-4 py-3 text-[15px] focus:ring-1 focus:ring-black font-medium"
+            />
+          </div>
+          <div className="mt-3 flex overflow-x-auto space-x-2 no-scrollbar pb-1">
+            {COMMON_LOCATIONS.map(loc => (
+              <button 
+                key={loc}
+                onClick={() => setBatchLocation(loc)}
+                className="flex-shrink-0 px-3 py-1.5 bg-gray-100 rounded-full text-[12px] font-bold text-gray-600 active:bg-black active:text-white transition-colors"
+              >
+                {loc}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {analyzing ? (
           <div className="bg-white rounded-xl p-12 flex flex-col items-center justify-center border border-gray-200 shadow-sm">
             <div className="w-8 h-8 border-3 border-gray-200 border-t-black rounded-full animate-spin mb-4"></div>
@@ -161,6 +194,10 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddItems, initialImage }) =
           </div>
         ) : detectedItems.length > 0 ? (
           <div className="space-y-6">
+            <div className="flex items-center justify-between px-1">
+               <span className="text-sm font-bold text-gray-400">检测到 {detectedItems.length} 个物品</span>
+               <button onClick={() => setDetectedItems([])} className="text-sm font-bold text-black">重新拍照</button>
+            </div>
             {detectedItems.map((item, idx) => (
               <div key={idx} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm animate-in slide-in-from-bottom-2 duration-300">
                 <div className="flex p-4 border-b border-gray-50">
@@ -191,13 +228,15 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddItems, initialImage }) =
                 </div>
                 <div className="p-4 bg-gray-50/30 grid grid-cols-1 gap-4">
                   <div>
-                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-tight block mb-1">具体存放位置</label>
+                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-tight block mb-1">
+                      {batchLocation ? `具体细节 (将附加在 ${batchLocation} 后)` : '具体存放位置'}
+                    </label>
                     <input 
                       type="text" 
                       value={item.preciseLocation || ''}
                       onChange={e => updateItem(idx, 'preciseLocation', e.target.value)}
                       className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:border-black focus:ring-0 font-medium"
-                      placeholder="填写具体柜子或层数"
+                      placeholder="填写柜子或层数"
                     />
                   </div>
                   <div>

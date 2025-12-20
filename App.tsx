@@ -37,7 +37,7 @@ const App: React.FC = () => {
 
   // 2. 安全存储：防止 QuotaExceededError 导致白屏
   useEffect(() => {
-    if (items.length > 0) {
+    if (items.length >= 0) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
       } catch (e) {
@@ -67,6 +67,10 @@ const App: React.FC = () => {
     }
     setPendingImage(null);
     setActiveTab('menu'); 
+  };
+
+  const handleUpdateItem = (updatedItem: StorageItem) => {
+    setItems(prev => prev.map(item => item.id === updatedItem.id ? updatedItem : item));
   };
 
   const handleRemoveItem = (id: string) => {
@@ -182,7 +186,12 @@ const App: React.FC = () => {
             >
               <i className="fa-solid fa-house text-xl"></i>
             </button>
-            <MenuView items={items} onRemoveItem={handleRemoveItem} initialScene={preselectedScene} />
+            <MenuView 
+              items={items} 
+              onRemoveItem={handleRemoveItem} 
+              onUpdateItem={handleUpdateItem}
+              initialScene={preselectedScene} 
+            />
           </div>
         )}
         {activeTab === 'chat' && (

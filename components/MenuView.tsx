@@ -5,18 +5,22 @@ import { StorageItem, SceneType } from '../types';
 interface MenuViewProps {
   items: StorageItem[];
   onRemoveItem: (id: string) => void;
+  onUpdateItem: (item: StorageItem) => void;
   initialScene?: SceneType | null;
 }
 
-const MenuView: React.FC<MenuViewProps> = ({ items = [], onRemoveItem, initialScene }) => {
+const MenuView: React.FC<MenuViewProps> = ({ items = [], onRemoveItem, onUpdateItem, initialScene }) => {
   const [selectedScene, setSelectedScene] = useState<SceneType | null>(null);
   const [selectedItem, setSelectedItem] = useState<StorageItem | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<StorageItem | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (initialScene) {
       setSelectedScene(initialScene);
       setSelectedItem(null);
+      setIsEditing(false);
     }
   }, [initialScene]);
 
@@ -40,8 +44,24 @@ const MenuView: React.FC<MenuViewProps> = ({ items = [], onRemoveItem, initialSc
   const handleBack = () => {
     if (selectedItem) {
       setSelectedItem(null);
+      setIsEditing(false);
     } else if (selectedScene) {
       setSelectedScene(null);
+    }
+  };
+
+  const startEditing = () => {
+    if (selectedItem) {
+      setEditForm({ ...selectedItem });
+      setIsEditing(true);
+    }
+  };
+
+  const handleSaveEdit = () => {
+    if (editForm) {
+      onUpdateItem(editForm);
+      setSelectedItem(editForm);
+      setIsEditing(false);
     }
   };
 
@@ -61,15 +81,20 @@ const MenuView: React.FC<MenuViewProps> = ({ items = [], onRemoveItem, initialSc
   if (selectedItem) {
     return (
       <div className="flex flex-col h-full bg-[#F2F2F7]">
-        <div className="glass-header px-4 py-3 sticky top-0 z-10 flex items-center">
+        <div className="glass-header px-4 py-3 sticky top-0 z-10 flex items-center justify-between">
           <button onClick={handleBack} className="text-black font-bold flex items-center">
             <i className="fa-solid fa-chevron-left mr-1"></i>
             返回
           </button>
-          <div className="flex-1 text-center font-bold text-[17px] mr-10">物品详情</div>
+          <div className="font-bold text-[17px]">物品详情</div>
+          {isEditing ? (
+            <button onClick={handleSaveEdit} className="text-black font-bold text-sm bg-gray-100 px-3 py-1 rounded-full">保存</button>
+          ) : (
+            <button onClick={startEditing} className="text-black font-bold text-sm bg-gray-100 px-3 py-1 rounded-full">编辑</button>
+          )}
         </div>
 
-        <div className="p-4 space-y-6 pb-24">
+        <div className="p-4 space-y-6 pb-32">
           <div className="bg-white rounded-xl overflow-hidden border border-gray-200 shadow-sm">
             <img src={selectedItem.imageUrl} alt={selectedItem.name} className="w-full h-64 object-cover" />
           </div>
@@ -77,28 +102,69 @@ const MenuView: React.FC<MenuViewProps> = ({ items = [], onRemoveItem, initialSc
           <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
             <div className="p-4">
               <p className="text-[12px] text-gray-400 font-semibold uppercase tracking-tight mb-1">物品名称</p>
-              <p className="text-[17px] font-bold text-black">{selectedItem.name || '未命名'}</p>
+              {isEditing ? (
+                <input 
+                  type="text"
+                  value={editForm?.name || ''}
+                  onChange={e => setEditForm(prev => prev ? {...prev, name: e.target.value} : null)}
+                  className="w-full bg-gray-50 border-none rounded p-1 text-[17px] font-bold focus:ring-1 focus:ring-black"
+                />
+              ) : (
+                <p className="text-[17px] font-bold text-black">{selectedItem.name || '未命名'}</p>
+              )}
             </div>
             <div className="p-4">
               <p className="text-[12px] text-gray-400 font-semibold uppercase tracking-tight mb-1">存放位置</p>
-              <p className="text-[17px] text-black font-medium">{selectedItem.locationDetail || '未知'}</p>
-              <p className="text-[13px] text-gray-500 font-bold mt-1">{selectedItem.scene}</p>
+              {isEditing ? (
+                <div className="space-y-2">
+                  <input 
+                    type="text"
+                    value={editForm?.locationDetail || ''}
+                    onChange={e => setEditForm(prev => prev ? {...prev, locationDetail: e.target.value} : null)}
+                    className="w-full bg-gray-50 border-none rounded p-1 text-[15px] focus:ring-1 focus:ring-black"
+                    placeholder="具体位置"
+                  />
+                  <select 
+                    value={editForm?.scene}
+                    onChange={e => setEditForm(prev => prev ? {...prev, scene: e.target.value as SceneType} : null)}
+                    className="w-full bg-gray-50 border-none rounded p-1 text-[13px] font-bold focus:ring-1 focus:ring-black"
+                  >
+                    {Object.values(SceneType).map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              ) : (
+                <>
+                  <p className="text-[17px] text-black font-medium">{selectedItem.locationDetail || '未知'}</p>
+                  <p className="text-[13px] text-gray-500 font-bold mt-1">{selectedItem.scene}</p>
+                </>
+              )}
             </div>
             <div className="p-4">
               <p className="text-[12px] text-gray-400 font-semibold uppercase tracking-tight mb-1">特征备注</p>
-              <p className="text-[15px] text-gray-700 leading-relaxed">{selectedItem.remarks || '无'}</p>
+              {isEditing ? (
+                <textarea 
+                  rows={3}
+                  value={editForm?.remarks || ''}
+                  onChange={e => setEditForm(prev => prev ? {...prev, remarks: e.target.value} : null)}
+                  className="w-full bg-gray-50 border-none rounded p-1 text-[15px] focus:ring-1 focus:ring-black"
+                />
+              ) : (
+                <p className="text-[15px] text-gray-700 leading-relaxed">{selectedItem.remarks || '无'}</p>
+              )}
             </div>
           </div>
 
-          <button 
-            onClick={() => {
-              onRemoveItem(selectedItem.id);
-              handleBack();
-            }}
-            className="w-full py-4 bg-white text-gray-900 font-bold rounded-xl border border-gray-200 active:bg-gray-50 transition-colors"
-          >
-            从清单移除
-          </button>
+          {!isEditing && (
+            <button 
+              onClick={() => {
+                onRemoveItem(selectedItem.id);
+                handleBack();
+              }}
+              className="w-full py-4 bg-white text-red-500 font-bold rounded-xl border border-gray-200 active:bg-gray-50 transition-colors"
+            >
+              从清单移除
+            </button>
+          )}
         </div>
       </div>
     );
