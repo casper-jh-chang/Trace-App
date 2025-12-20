@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Navigation from './components/Navigation';
 import StorageView from './components/StorageView';
