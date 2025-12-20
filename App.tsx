@@ -6,13 +6,13 @@ import StorageView from './components/StorageView';
 import ChatSearch from './components/ChatSearch';
 import GalleryView from './components/GalleryView';
 import Sidebar from './components/Sidebar';
-import PosterView from './components/PosterView';
-import { SceneRecord } from './types';
-import { getAllScenes, addScene, deleteScene } from './services/dbService';
+import { StorageItem, SceneType } from './types';
+
+const STORAGE_KEY = 'smart_organize_items_v2';
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'home' | 'storage' | 'chat' | 'gallery' | 'poster'>('home');
-  const [scenes, setScenes] = useState<SceneRecord[]>([]);
+  const [activeTab, setActiveTab] = useState<'home' | 'storage' | 'menu' | 'chat'>('home');
+  const [items, setItems] = useState<StorageItem[]>([]);
   const [initialChatQuery, setInitialChatQuery] = useState('');
   const [liveAutoStart, setLiveAutoStart] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -22,25 +22,34 @@ const App: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const loadData = async () => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
       try {
-        const storedScenes = await getAllScenes();
-        setScenes(storedScenes.sort((a, b) => b.timestamp - a.timestamp));
+        setItems(JSON.parse(saved));
       } catch (e) {
-        console.error("Failed to load visual memory from IndexedDB", e);
+        console.error("Failed to load items", e);
       }
-    };
-    loadData();
+    }
   }, []);
 
-  const handleAddScene = async (newScene: SceneRecord) => {
-    try {
-      await addScene(newScene);
-      setScenes(prev => [newScene, ...prev]);
-      setActiveTab('gallery'); // 存完去相册看看
-      setPendingImage(null);
-    } catch (e) {
-      alert("视觉记忆存储失败，请检查浏览器配额。");
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  }, [items]);
+
+  const itemsCountByScene = useMemo(() => {
+    return items.reduce((acc, item) => {
+      acc[item.scene] = (acc[item.scene] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [items]);
+
+  const handleAddItems = (newItems: StorageItem[]) => {
+    setItems(prev => [...newItems, ...prev]);
+    const uniqueScenes = Array.from(new Set(newItems.map(item => item.scene)));
+    if (uniqueScenes.length === 1) {
+      setPreselectedScene(uniqueScenes[0]);
+    } else {
+      setPreselectedScene(null);
     }
   };
 
