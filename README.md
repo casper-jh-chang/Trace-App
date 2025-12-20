@@ -1,22 +1,87 @@
-An intelligent home organization assistant that uses AI to recognize items and track their locations through photos and natural language interaction.
+# Trace (抽屉) - 你的 AI 找物小帮手
 
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+Trace (中文名：抽屉) 是一款智能家居收纳助手应用，利用先进的人工智能技术帮助你轻松记录、管理和查找家中的物品。不再为找不到东西而烦恼，拍张照，AI 帮你记。
 
-# Run and deploy your AI Studio app
+## ✨ 核心功能
 
-This contains everything you need to run your app locally.
+*   **📷 智能记录 (记东西)**
+    *   拍摄或上传物品/收纳空间的照片。
+    *   **AI 自动分析**：自动识别照片中的物品，并建议所属的空间分类（如“客厅”、“书房”）。
+    *   支持手动编辑物品详情和分类。
 
-View your app in AI Studio: https://ai.studio/apps/drive/1sPkUvmRkt3OZRxCdVgCdzWmOwcyJ69Br
+*   **🔍 自然语言搜索 (找东西)**
+    *   **语音/文字交互**：直接问“我的护照在哪里？”或“看看书房里有什么”。
+    *   **多模态 AI 回复**：基于已存储的物品数据，AI 智能回答你的问题。
 
-## Run Locally
+*   **📦 百宝箱 (物品管理)**
+    *   可视化管理所有收纳空间和物品。
+    *   支持拖拽整理、分类管理、批量操作。
 
-**Prerequisites:**  Node.js
+*   **🧠 多模型支持**
+    *   支持切换 **Google Gemini** 或 **阿里通义千问 (Qwen)** 作为底层 AI 模型。
 
+## 🛠️ 技术栈
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+*   **前端**：React 19, TypeScript, Vite, Tailwind CSS
+*   **后端**：Node.js, Express
+*   **数据库**：SQLite
+*   **AI 服务**：Google Generative AI SDK, Alibaba Cloud Qwen SDK
+
+## 🚀 快速开始
+
+### 前置要求
+
+*   Node.js (v18+)
+*   npm 或 yarn
+
+### 1. 安装依赖
+
+```bash
+npm install
+```
+
+### 2. 配置环境变量
+
+在项目根目录下创建一个 `.env` 文件（参考 `.env.example` 或根据代码逻辑），并填入你的 AI 模型 API Key：
+
+```env
+# Google Gemini API Key
+VITE_GEMINI_API_KEY=your_gemini_api_key_here
+
+# Alibaba Qwen API Key
+VITE_DASHSCOPE_API_KEY=your_qwen_api_key_here
+```
+
+### 3. 启动开发服务
+
+Trace 需要同时启动前端和后端服务。
+
+**启动后端 API 服务：**
+
+```bash
+npm run server
+```
+*后端服务默认运行在 `http://localhost:3000`*
+
+**启动前端开发服务器：**
+
+```bash
+npm run dev
+```
+*前端服务默认运行在 `http://localhost:5173`*
+
+现在，访问 `http://localhost:5173` 即可开始使用 Trace。
+
+## 🐳 Docker 部署
+
+本项目包含 Docker 支持，可以一键启动。
+
+```bash
+docker-compose up -d
+```
+
+这将会启动前端 Nginx 容器和后端 Node.js 容器。
+
+## 📄 许可证
+
+MIT License

@@ -94,7 +94,7 @@ const HomeView: React.FC<HomeViewProps> = ({ onStartChat, onStartCamera, onOpenM
     <div className="flex flex-col h-screen w-full bg-light overflow-hidden">
       <div className="pt-16 pb-8 px-8 flex flex-col items-center animate-in slide-in-from-top duration-500">
         <h1 className="text-4xl font-bold text-black tracking-tight mb-2">抽屉</h1>
-        <p className="text-gray-500 text-sm font-medium bg-white px-4 py-1 rounded-full shadow-sm">你的收纳小帮手</p>
+        <p className="text-gray-500 text-sm font-medium bg-white px-4 py-1 rounded-full shadow-sm">你的找物小帮手</p>
       </div>
 
       <div className="flex-1 px-6 pb-24 max-w-lg mx-auto w-full flex flex-col gap-6 overflow-y-auto">
