@@ -237,7 +237,19 @@ export const queryInventoryQwen = async (
 ): Promise<ChatAIResponse> => {
   // Similar implementation for chat
   const memoryContext = scenes.length > 0
-    ? scenes.map(s => `[场景ID:${s.id}, 位置:${s.locationCategory}] 包含物品: ${s.items.map(i => i.itemName).join(', ')}`).join('\n')
+    ? scenes.map(s => {
+      const dateStr = new Date(s.timestamp).toLocaleDateString();
+      const itemsStr = s.items.map(i => {
+        let info = i.itemName;
+        if (i.isPerishable) {
+          info += ` (易腐`;
+          if (i.shelfLifeDays) info += `, 原始保质期:${i.shelfLifeDays}天`;
+          info += `)`;
+        }
+        return info;
+      }).join(', ');
+      return `[场景ID:${s.id}, 位置:${s.locationCategory}, 记录日期:${dateStr}] 包含物品: ${itemsStr}`;
+    }).join('\n')
     : "当前没有任何视觉记忆记录。";
 
   // --- STEP 1: RETRIEVAL (Search) ---
@@ -249,7 +261,8 @@ export const queryInventoryQwen = async (
     ? `【检索结果】我在记忆库中发现了以下相关物品：${JSON.stringify(foundItems)}。请务必基于这些检索结果回答用户，并填充 matchedItemDetails。`
     : `【检索结果】我在记忆库中没有发现明确匹配的物品。`;
 
-  const systemInstruction = `你是一个“视觉记忆”管家。你的回答必须基于用户提供的“场景记忆”和“检索结果”。
+  const systemInstruction = `你是一个“视觉记忆”管家。今天是 ${new Date().toLocaleDateString()}。
+  你的回答必须基于用户提供的“场景记忆”和“检索结果”。
   
   【回答规则】
   1. 如果【检索结果】中有物品，你必须告诉用户这些物品在什么位置。
@@ -260,6 +273,7 @@ export const queryInventoryQwen = async (
   3. 你的回答必须非常简短。**严禁在回答中提及“场景ID”、“标记”或“ID”等技术术语**。
   4. 必须返回 matchedSceneIds。
   5. **关键点**：必须返回 matchedItemDetails 列表，明确指明在哪个场景里匹配到了哪个具体物品名称（必须与原始数据完全一致）。
+  6. **关于保质期**：场景记录中有“记录日期”和物品的“原始保质期”。请根据“今天是...”主动计算物品是否过期或临期，并在回答中温馨提醒用户（例如：“注意：记录于3天前的牛奶可能快过期了”）。
   
   【重要】你必须只输出标准的 JSON 格式，严禁输出任何其他文本或 Markdown 标记。
   【思维链】在生成JSON之前，你可以先思考，但必须将思考过程放入JSON的 "_thought" 字段中，不要在JSON之外输出任何内容。
