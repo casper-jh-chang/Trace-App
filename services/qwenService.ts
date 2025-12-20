@@ -1,4 +1,4 @@
-import { AIAnalysisResult, SceneRecord, ChatMessage, SceneType } from "../types";
+import { AIAnalysisResult, SceneRecord, ChatMessage, SceneType, ChatAIResponse } from "../types";
 
 const API_KEY = import.meta.env.VITE_DASHSCOPE_API_KEY || "sk-05437c944b084b288c3948746c58630e";
 
@@ -10,7 +10,7 @@ const QWEN_API_URL = import.meta.env.DEV
 export const analyzeImageQwen = async (base64Image: string): Promise<AIAnalysisResult> => {
   const prompt = `你是一个极度细致的收纳识别专家。请扫描这张照片，找出其中所有的**独立小物品**。
 【铁律】不要识别容器（如抽屉、盒子、柜子本身），只识别里面的内容物。
-请返回物品名称、分类、位置描述、2D坐标[ymin, xmin, ymax, xmax]以及预计保质期（如果是食品）。
+请返回物品名称、分类、位置描述、2D坐标[xmin, ymin, xmax, ymax]（0-1000归一化）以及预计保质期（如果是食品）。
 请以JSON格式返回，不要包含Markdown格式标记（如 \`\`\`json）。
 返回格式示例：
 {
@@ -22,7 +22,7 @@ export const analyzeImageQwen = async (base64Image: string): Promise<AIAnalysisR
       "preciseLocation": "位置描述",
       "remarks": "备注",
       "shelfLifeDays": 365,
-      "box_2d": [0, 0, 100, 100] // [ymin, xmin, ymax, xmax] 归一化或像素坐标均可，最好是[0-1000]范围
+      "box_2d": [0, 0, 1000, 1000] // [xmin, ymin, xmax, ymax] 对应 [左上角x, 左上角y, 右下角x, 右下角y]，必须是0-1000的归一化坐标
     }
   ]
 }`;
@@ -110,11 +110,63 @@ export const analyzeImageQwen = async (base64Image: string): Promise<AIAnalysisR
   }
 };
 
+const locateItemInScene = async (sceneImage: string, itemName: string): Promise<number[] | undefined> => {
+  try {
+    const prompt = `请在图中精准框选出"${itemName}"。请返回该物品的2D坐标[xmin, ymin, xmax, ymax]（0-1000归一化）。请直接返回JSON格式：{"box_2d": [x1, y1, x2, y2]}`;
+
+    let dataUri = sceneImage;
+    if (!sceneImage.startsWith('data:')) {
+      dataUri = `data:image/jpeg;base64,${sceneImage}`;
+    }
+
+    const payload = {
+      model: "qwen-vl-max",
+      input: {
+        messages: [
+          {
+            role: "user",
+            content: [
+              { image: dataUri },
+              { text: prompt }
+            ]
+          }
+        ]
+      },
+      parameters: {
+        result_format: "message"
+      }
+    };
+
+    const response = await fetch(QWEN_API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) return undefined;
+
+    const data = await response.json();
+    const content = data.output?.choices?.[0]?.message?.content?.[0]?.text || data.output?.choices?.[0]?.message?.content;
+
+    if (!content) return undefined;
+
+    const cleanContent = content.replace(/```json\n?|```/g, "").trim();
+    const parsed = JSON.parse(cleanContent);
+    return parsed.box_2d;
+  } catch (e) {
+    console.error("Re-location failed:", e);
+    return undefined;
+  }
+};
+
 export const queryInventoryQwen = async (
   query: string,
   scenes: SceneRecord[],
   chatHistory: ChatMessage[]
-): Promise<any> => {
+): Promise<ChatAIResponse> => {
   // Similar implementation for chat
   const memoryContext = scenes.length > 0
     ? scenes.map(s => `[场景ID:${s.id}, 位置:${s.locationCategory}] 包含物品: ${s.items.map(i => i.itemName).join(', ')}`).join('\n')
@@ -188,7 +240,27 @@ export const queryInventoryQwen = async (
     const content = data.output?.choices?.[0]?.message?.content;
 
     const cleanContent = content.replace(/```json\n?|```/g, "").trim();
-    return JSON.parse(cleanContent);
+    const parsedResponse = JSON.parse(cleanContent) as ChatAIResponse;
+
+    // --- RE-VERIFICATION LOGIC ---
+    // If we have matched items, try to get a better bounding box using the visual model on-demand
+    if (parsedResponse.matchedItemDetails && parsedResponse.matchedItemDetails.length > 0) {
+      // Limit to first 3 items to avoid excessive API calls
+      const itemsToVerify = parsedResponse.matchedItemDetails.slice(0, 3);
+
+      await Promise.all(itemsToVerify.map(async (detail) => {
+        const scene = scenes.find(s => s.id === detail.sceneId);
+        if (scene && scene.fullImageUrl) {
+          // Call Qwen VL Max to re-locate
+          const newBox = await locateItemInScene(scene.fullImageUrl, detail.itemName);
+          if (newBox) {
+            detail.box_2d = newBox;
+          }
+        }
+      }));
+    }
+
+    return parsedResponse;
 
   } catch (e) {
     console.error("Qwen Chat Error:", e);

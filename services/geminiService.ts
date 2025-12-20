@@ -22,7 +22,7 @@ export const analyzeImage = async (base64Image: string): Promise<AIAnalysisResul
               {
                 text: `你是一个极度细致的收纳识别专家。请扫描这张照片，找出其中所有的**独立小物品**。
                 【铁律】不要识别容器（如抽屉、盒子、柜子本身），只识别里面的内容物。
-                请返回物品名称、分类、位置描述、2D坐标[ymin, xmin, ymax, xmax]以及预计保质期（如果是食品）。`,
+                请返回物品名称、分类、位置描述、2D坐标[xmin, ymin, xmax, ymax]（0-1000归一化）以及预计保质期（如果是食品）。`,
               },
             ],
           },

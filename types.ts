@@ -50,5 +50,9 @@ export interface AIAnalysisResult {
 export interface ChatAIResponse {
   answer: string;
   matchedSceneIds: string[];
-  matchedItemDetails: Array<{ sceneId: string, itemName: string }>;
+  matchedItemDetails?: {
+    sceneId: string;
+    itemName: string;
+    box_2d?: number[]; // [xmin, ymin, xmax, ymax] 0-1000 normalized
+  }[];
 }

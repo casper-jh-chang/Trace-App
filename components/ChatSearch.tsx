@@ -19,6 +19,51 @@ interface ExtendedChatMessage extends ChatMessage {
   matches?: MatchResult[];
 }
 
+const CroppedImage = ({ src, box2d, alt }: { src: string, box2d: number[], alt: string }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = src;
+    
+    img.onload = () => {
+        const [xmin, ymin, xmax, ymax] = box2d;
+        // box2d is 0-1000 normalized
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+        
+        const x = (xmin / 1000) * w;
+        const y = (ymin / 1000) * h;
+        const width = ((xmax - xmin) / 1000) * w;
+        const height = ((ymax - ymin) / 1000) * h;
+        
+        // Add some padding (optional, e.g. 10%)
+        const padX = width * 0.1;
+        const padY = height * 0.1;
+        
+        // Clamp to image boundaries
+        const sx = Math.max(0, x - padX);
+        const sy = Math.max(0, y - padY);
+        const sWidth = Math.min(w - sx, width + 2 * padX);
+        const sHeight = Math.min(h - sy, height + 2 * padY);
+
+        canvas.width = sWidth;
+        canvas.height = sHeight;
+        
+        ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
+    };
+  }, [src, box2d]);
+
+  return <canvas ref={canvasRef} className="w-24 h-24 object-contain bg-gray-50 rounded-lg border border-gray-100 flex-shrink-0" />;
+};
+
 const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStartLive, onLiveEnd }) => {
   const [messages, setMessages] = useState<ExtendedChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -52,7 +97,9 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
             if (!matchMap.has(scene.id)) {
               matchMap.set(scene.id, { scene, items: [] });
             }
-            matchMap.get(scene.id)!.items.push(item);
+            // Use the fresh box_2d if available, otherwise fallback to existing
+            const itemToUse = detail.box_2d ? { ...item, box_2d: detail.box_2d } : item;
+            matchMap.get(scene.id)!.items.push(itemToUse);
           }
         }
       });
@@ -101,42 +148,27 @@ const ChatSearch: React.FC<ChatSearchProps> = ({ scenes, initialQuery, autoStart
                   </span>
                 </div>
                 
-                <div className="relative w-full aspect-video sm:aspect-square bg-gray-100 overflow-hidden">
-                  <img src={match.scene.fullImageUrl} className="w-full h-full object-contain" alt="Search result" />
-                  
-                  {/* Bounding Boxes Overlay */}
-                  <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 1000 1000" preserveAspectRatio="none">
-                    {match.items.map((item, iIdx) => {
-                      const [ymin, xmin, ymax, xmax] = item.box_2d;
-                      return (
-                        <g key={iIdx}>
-                          <rect 
-                            x={xmin} y={ymin} width={xmax - xmin} height={ymax - ymin}
-                            fill="none" stroke="#3B82F6" strokeWidth="8" rx="10"
-                            className="animate-pulse shadow-2xl"
-                            style={{ filter: 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.5))' }}
-                          />
-                          <circle cx={xmin + (xmax-xmin)/2} cy={ymin + (ymax-ymin)/2} r="15" fill="#3B82F6" className="animate-ping" />
-                        </g>
-                      );
-                    })}
-                  </svg>
+                <div className="relative w-full bg-gray-100 overflow-hidden">
+                  <img src={match.scene.fullImageUrl} className="w-full h-auto block" alt="Search result" />
                 </div>
 
                 <div className="p-4 bg-gray-50 space-y-3">
                   {match.items.map((item, iIdx) => (
-                    <div key={iIdx} className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[14px] font-bold text-black">{item.itemName}</span>
-                        <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold uppercase">{item.category}</span>
+                    <div key={iIdx} className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm flex gap-3">
+                      <CroppedImage src={match.scene.fullImageUrl} box2d={item.box_2d} alt={item.itemName} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[14px] font-bold text-black truncate">{item.itemName}</span>
+                          <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold uppercase flex-shrink-0">{item.category}</span>
+                        </div>
+                        <p className="text-[12px] text-gray-600 flex items-start leading-snug">
+                          <i className="fa-solid fa-map-pin mr-1.5 mt-0.5 text-gray-400 text-[10px]"></i>
+                          <span className="truncate"><strong className="text-black font-medium">{item.preciseLocation}</strong></span>
+                        </p>
+                        {item.remarks && (
+                           <p className="text-[11px] text-gray-400 mt-1 italic truncate">"{item.remarks}"</p>
+                        )}
                       </div>
-                      <p className="text-[12px] text-gray-600 flex items-start">
-                        <i className="fa-solid fa-map-pin mr-2 mt-0.5 text-gray-400"></i>
-                        <span>精准位置：<strong className="text-black">{item.preciseLocation}</strong></span>
-                      </p>
-                      {item.remarks && (
-                         <p className="text-[11px] text-gray-400 mt-1 italic pl-5">备注: {item.remarks}</p>
-                      )}
                     </div>
                   ))}
                 </div>
