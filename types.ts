@@ -17,6 +17,7 @@ export interface AIItem {
   remarks: string;
   box_2d: number[];
   shelfLifeDays?: number;
+  isPerishable?: boolean;
 }
 
 // Added StorageItem interface to support legacy inventory view and item tracking

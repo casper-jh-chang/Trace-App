@@ -35,6 +35,8 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [editingIsPerishable, setEditingIsPerishable] = useState(false);
+  const [editingShelfLife, setEditingShelfLife] = useState<string>('');
 
   useEffect(() => {
     isMounted.current = true;
@@ -305,9 +307,15 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
                 <button 
                   key={idx} 
                   onClick={() => handleItemClick(idx)}
-                  className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-sm font-bold active:scale-95 transition-transform hover:bg-primary/20"
+                  className={`px-4 py-2 rounded-xl text-sm font-bold active:scale-95 transition-transform border ${
+                    it.isPerishable 
+                      ? 'bg-orange-50 text-orange-600 border-orange-100 hover:bg-orange-100' 
+                      : 'bg-primary/10 text-primary border-transparent hover:bg-primary/20'
+                  }`}
                 >
+                  {it.isPerishable && <i className="fa-solid fa-clock mr-1.5 text-xs opacity-70"></i>}
                   {it.itemName}
+                  {it.shelfLifeDays && <span className="ml-1 opacity-70 text-xs">({it.shelfLifeDays}天)</span>}
                 </button>
               ))}
               <button 

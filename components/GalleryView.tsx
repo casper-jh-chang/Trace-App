@@ -46,6 +46,9 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
   // Item Management State
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [editingItemName, setEditingItemName] = useState('');
+  const [editingIsPerishable, setEditingIsPerishable] = useState(false);
+  const [editingShelfLife, setEditingShelfLife] = useState<string>('');
+  const [itemModalOpen, setItemModalOpen] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
   const [newItemName, setNewItemName] = useState('');
 
@@ -378,13 +381,18 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
   const handleAddItem = async () => {
     if (!selectedScene || !newItemName.trim()) return;
     
+    // Check if we have extended details from modal (if we decide to use modal for add too)
+    // For now, keep quick add simple, or maybe open modal for add?
+    // Let's keep quick add simple for now, but user can edit later.
+    
     const newItem: AIItem = {
       itemName: newItemName.trim(),
       category: '手动添加',
       scene: SceneType.OTHER,
       preciseLocation: '',
       remarks: '',
-      box_2d: [0, 0, 0, 0]
+      box_2d: [0, 0, 0, 0],
+      isPerishable: false
     };
 
     const updatedItems = [...selectedScene.items, newItem];
@@ -539,6 +547,68 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
              <p className="font-bold text-black text-sm">移动 {selectedIds.size} 个角落</p>
              <p className="text-xs text-primary font-bold">{dropTarget ? `松手移动到: ${dropTarget}` : '拖动到空间分类...'}</p>
            </div>
+        </div>
+      )}
+
+      {/* Item Edit Modal */}
+      {itemModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-xs shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">编辑物品</h3>
+            
+            <input 
+              type="text" 
+              value={editingItemName}
+              onChange={e => setEditingItemName(e.target.value)}
+              placeholder="物品名称"
+              autoFocus
+              className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-lg font-bold placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary mb-6"
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleUpdateItem();
+              }}
+            />
+            
+            <div className="bg-gray-50 rounded-2xl p-4 mb-6">
+               <label className="flex items-center gap-3 mb-3 cursor-pointer">
+                 <input 
+                   type="checkbox"
+                   checked={editingIsPerishable}
+                   onChange={e => setEditingIsPerishable(e.target.checked)}
+                   className="w-5 h-5 rounded-md text-primary focus:ring-primary"
+                 />
+                 <span className="font-bold text-gray-700">是生鲜/有保质期</span>
+               </label>
+               
+               {editingIsPerishable && (
+                 <div className="animate-in slide-in-from-top-2 duration-200">
+                   <div className="text-xs text-gray-400 font-bold mb-1 ml-1">保质期（天）</div>
+                   <input 
+                     type="number" 
+                     value={editingShelfLife}
+                     onChange={e => setEditingShelfLife(e.target.value)}
+                     placeholder="多少天后过期？"
+                     className="w-full bg-white border-none rounded-xl px-4 py-3 text-base font-bold placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-primary"
+                   />
+                 </div>
+               )}
+             </div>
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setItemModalOpen(false)}
+                className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-2xl active:scale-95 transition-all"
+              >
+                取消
+              </button>
+              <button 
+                onClick={handleUpdateItem}
+                disabled={!editingItemName.trim()}
+                className="flex-1 py-3 bg-black text-white font-bold rounded-2xl active:scale-95 transition-all shadow-lg disabled:opacity-50"
+              >
+                保存
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1127,6 +1197,8 @@ const SceneCard: React.FC<{
 }> = ({ scene, onClick, onLongPress, onDragStart, isSelected, isSelectionMode }) => {
   const timerRef = React.useRef<any>(null);
 
+  const hasPerishable = scene.items && scene.items.some(item => item.isPerishable);
+
   const handleStart = (e: React.TouchEvent | React.MouseEvent) => {
     if (onDragStart) {
         onDragStart(e);
@@ -1158,6 +1230,12 @@ const SceneCard: React.FC<{
       {isSelectionMode && (
         <div className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center z-10 ${isSelected ? 'bg-primary border-primary' : 'bg-white/50 border-white'}`}>
           {isSelected && <i className="fa-solid fa-check text-white text-xs"></i>}
+        </div>
+      )}
+      {!isSelectionMode && hasPerishable && (
+        <div className="absolute top-2 right-2 bg-orange-500 text-white px-2 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 z-10 shadow-lg border border-white/20">
+          <i className="fa-solid fa-clock"></i>
+          <span>生鲜</span>
         </div>
       )}
       <div className="aspect-square overflow-hidden bg-gray-50 relative">

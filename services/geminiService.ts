@@ -27,7 +27,7 @@ export const analyzeImage = async (base64Image: string, knownSpaces: string[] = 
               {
                 text: `你是一个极度细致的收纳识别专家。请扫描这张照片，找出其中所有的**独立小物品**。
                 【铁律】不要识别容器（如抽屉、盒子、柜子本身），只识别里面的内容物。
-                请返回物品名称、分类、位置描述、2D坐标[xmin, ymin, xmax, ymax]（0-1000归一化）以及预计保质期（如果是食品）。
+                请返回物品名称、分类、位置描述、2D坐标[xmin, ymin, xmax, ymax]（0-1000归一化）、是否为易腐/生鲜物品（isPerishable），以及预计保质期天数（shelfLifeDays，如果是食品）。
                 同时，${spacesContext}
                 然后，推测这是一个什么具体位置（例如：书桌、冰箱内部、茶几、床头柜），作为 suggestedLocation 返回。**注意：suggestedLocation 不要包含 suggestedSpace 的名称**。`,
               },
@@ -52,6 +52,7 @@ export const analyzeImage = async (base64Image: string, knownSpaces: string[] = 
                     preciseLocation: { type: Type.STRING },
                     remarks: { type: Type.STRING },
                     shelfLifeDays: { type: Type.NUMBER },
+                    isPerishable: { type: Type.BOOLEAN },
                     box_2d: { type: Type.ARRAY, items: { type: Type.NUMBER } },
                   },
                   required: ["itemName", "category", "scene", "preciseLocation", "remarks", "box_2d"],
