@@ -20,6 +20,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
 
   // Management State
   const [managingCategory, setManagingCategory] = useState<string | null>(null);
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [renameInput, setRenameInput] = useState('');
   const [mergeTarget, setMergeTarget] = useState('');
 
@@ -386,7 +387,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
              {scenes.length} 个角落 · {allCategories.length} 个空间
            </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 hidden">
             <button 
               onClick={() => {
                   setIsSelectionMode(!isSelectionMode);
@@ -658,8 +659,9 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto flex flex-col items-center p-6">
-            <div className="w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl my-auto">
+          <div className="flex-1 overflow-y-auto">
+            <div className="min-h-full flex items-center justify-center p-6">
+              <div className="w-full max-w-sm bg-white rounded-3xl overflow-hidden shadow-2xl">
               <img src={selectedScene.fullImageUrl} className="w-full h-auto" />
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
@@ -808,6 +810,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate })
                   )}
                 </div>
               </div>
+            </div>
             </div>
           </div>
         </div>
