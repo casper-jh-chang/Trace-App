@@ -46,6 +46,7 @@ export interface ChatMessage {
 
 export interface AIAnalysisResult {
   items: AIItem[];
+  suggestedLocation?: string; // AI 猜测的场景名称
 }
 
 export interface ChatAIResponse {

@@ -1,7 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { analyzeImage } from '../services/aiService';
-import { SceneRecord, AIItem } from '../types';
+import { getCategories } from '../services/dbService';
+import { SceneRecord, AIItem, SceneType } from '../types';
 
 interface StorageViewProps {
   onAddScene: (scene: SceneRecord) => void;
@@ -22,10 +23,28 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
   const [showConflictModal, setShowConflictModal] = useState(false);
   const [conflictId, setConflictId] = useState<string | null>(null);
 
+  // Space Management
+  const [existingCategories, setExistingCategories] = useState<string[]>([]);
+  const [selectedSpace, setSelectedSpace] = useState<string>('');
+
+  // Item Edit Management
+  const [itemModalOpen, setItemModalOpen] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingName, setEditingName] = useState('');
+
   useEffect(() => {
     isMounted.current = true;
+    getCategories().then(setExistingCategories).catch(console.error);
+    const lastSpace = localStorage.getItem('last_selected_space');
+    if (lastSpace) setSelectedSpace(lastSpace);
     return () => { isMounted.current = false; };
   }, []);
+
+  useEffect(() => {
+    if (selectedSpace) {
+      localStorage.setItem('last_selected_space', selectedSpace);
+    }
+  }, [selectedSpace]);
 
   useEffect(() => {
     if (!needFocusLocation) return;
@@ -88,6 +107,10 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
       const data = await analyzeImage(base64);
       if (!isMounted.current) return;
       setDetectedItems(data.items || []);
+      
+      if (data.suggestedLocation && !batchLocation) {
+        setBatchLocation(data.suggestedLocation);
+      }
     } catch (e) {
       alert("AI 扫描遇到一点问题");
     } finally {
@@ -119,6 +142,7 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
         fullImageUrl: compressedImage,
         timestamp: Date.now(),
         locationCategory: locationName,
+        superCategory: selectedSpace || undefined,
         items: detectedItems
       };
       onAddScene(newScene);
@@ -145,6 +169,50 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
     setNeedFocusLocation(true);
   };
 
+  const handleItemClick = (index: number) => {
+    setEditingIndex(index);
+    setEditingName(detectedItems[index].itemName);
+    setItemModalOpen(true);
+  };
+
+  const handleAddClick = () => {
+    setEditingIndex(null);
+    setEditingName('');
+    setItemModalOpen(true);
+  };
+
+  const handleSaveItem = () => {
+    if (!editingName.trim()) return;
+    
+    if (editingIndex !== null) {
+      // Edit
+      const newItems = [...detectedItems];
+      newItems[editingIndex] = { ...newItems[editingIndex], itemName: editingName.trim() };
+      setDetectedItems(newItems);
+    } else {
+      // Add
+      const newItem: AIItem = {
+        itemName: editingName.trim(),
+        category: '手动添加',
+        scene: SceneType.OTHER,
+        preciseLocation: batchLocation || '未命名位置',
+        remarks: '',
+        box_2d: [0, 0, 0, 0]
+      };
+      setDetectedItems([...detectedItems, newItem]);
+    }
+    setItemModalOpen(false);
+  };
+
+  const handleDeleteItem = () => {
+    if (editingIndex !== null) {
+      const newItems = [...detectedItems];
+      newItems.splice(editingIndex, 1);
+      setDetectedItems(newItems);
+    }
+    setItemModalOpen(false);
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#F2F2F7] relative">
       <div className="px-6 pt-12 pb-32 flex flex-col items-center">
@@ -155,14 +223,29 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
             <i className="fa-solid fa-location-dot mr-2"></i>
             这是哪里？
           </label>
-          <input 
-            ref={locationInputRef}
-            type="text" 
-            value={batchLocation}
-            onChange={e => setBatchLocation(e.target.value)}
-            placeholder="比如：书桌、冰箱、抽屉..."
-            className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 text-lg font-bold placeholder-gray-300 focus:outline-none focus:ring-0 transition-all"
-          />
+          <div className="flex gap-3">
+            <div className="relative w-1/3 min-w-[120px]">
+              <select
+                value={selectedSpace}
+                onChange={e => setSelectedSpace(e.target.value)}
+                className="w-full h-full appearance-none bg-gray-50 border-none rounded-2xl pl-4 pr-8 py-4 text-lg font-bold focus:outline-none focus:ring-0 transition-all text-black"
+              >
+                <option value="" className="text-gray-400">空间...</option>
+                {existingCategories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                <i className="fa-solid fa-chevron-down text-xs"></i>
+              </div>
+            </div>
+            <input 
+              ref={locationInputRef}
+              type="text" 
+              value={batchLocation}
+              onChange={e => setBatchLocation(e.target.value)}
+              placeholder="比如：书桌..."
+              className="flex-1 bg-gray-50 border-none rounded-2xl px-5 py-4 text-lg font-bold placeholder-gray-300 focus:outline-none focus:ring-0 transition-all min-w-0"
+            />
+          </div>
         </div>
 
         <div className="w-full bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm relative mb-6">
@@ -188,11 +271,22 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
             </h3>
             <div className="flex flex-wrap gap-2">
               {detectedItems.map((it, idx) => (
-                <span key={idx} className="bg-purple-50 text-purple-700 px-4 py-2 rounded-xl text-sm font-bold">
+                <button 
+                  key={idx} 
+                  onClick={() => handleItemClick(idx)}
+                  className="bg-purple-50 text-purple-700 px-4 py-2 rounded-xl text-sm font-bold active:scale-95 transition-transform hover:bg-purple-100"
+                >
                   {it.itemName}
-                </span>
+                </button>
               ))}
-              {detectedItems.length === 0 && <p className="text-gray-400 font-medium">没发现特别的东西</p>}
+              <button 
+                  onClick={handleAddClick}
+                  className="bg-gray-100 text-gray-400 px-4 py-2 rounded-xl text-sm font-bold active:scale-95 transition-transform hover:bg-gray-200 border border-dashed border-gray-300"
+              >
+                  <i className="fa-solid fa-plus mr-1"></i>
+                  添加
+              </button>
+              {detectedItems.length === 0 && <p className="text-gray-400 font-medium">没发现特别的东西，手动加一个？</p>}
             </div>
           </div>
         )}
@@ -239,6 +333,49 @@ const StorageView: React.FC<StorageViewProps> = ({ onAddScene, initialImage, exi
                 className="flex-1 py-4 bg-black text-white font-bold rounded-2xl active:scale-95 transition-all text-lg shadow-lg"
               >
                 覆盖它
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {itemModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-xs shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">
+              {editingIndex !== null ? '编辑物品' : '添加物品'}
+            </h3>
+            
+            <input 
+              type="text" 
+              value={editingName}
+              onChange={e => setEditingName(e.target.value)}
+              placeholder="物品名称"
+              autoFocus
+              className="w-full bg-gray-50 border-none rounded-2xl px-4 py-3 text-lg font-bold placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6"
+            />
+            
+            <div className="flex gap-3">
+              {editingIndex !== null && (
+                <button 
+                    onClick={handleDeleteItem}
+                    className="w-12 flex items-center justify-center bg-red-50 text-red-500 font-bold rounded-2xl active:scale-95 transition-all"
+                >
+                    <i className="fa-solid fa-trash"></i>
+                </button>
+              )}
+              <button 
+                onClick={() => setItemModalOpen(false)}
+                className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-2xl active:scale-95 transition-all"
+              >
+                取消
+              </button>
+              <button 
+                onClick={handleSaveItem}
+                disabled={!editingName.trim()}
+                className="flex-1 py-3 bg-black text-white font-bold rounded-2xl active:scale-95 transition-all shadow-lg disabled:opacity-50"
+              >
+                确定
               </button>
             </div>
           </div>
