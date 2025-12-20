@@ -97,7 +97,7 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-[#F2F2F7] flex flex-col relative overflow-hidden text-black">
       <button 
         onClick={() => setIsSidebarOpen(true)}
-        className="fixed top-6 left-6 z-50 w-10 h-10 flex items-center justify-center text-black hover:opacity-70 transition-opacity"
+        className="fixed top-3 left-3 z-50 w-10 h-10 flex items-center justify-center text-black hover:opacity-70 transition-opacity"
       >
         <i className="fa-solid fa-bars-staggered text-2xl"></i>
       </button>
@@ -154,12 +154,6 @@ const App: React.FC = () => {
         )}
         {activeTab === 'storage' && (
           <div className="h-full overflow-y-auto pt-12">
-            <button 
-              onClick={() => { setActiveTab('home'); setPendingImage(null); }}
-              className="fixed top-6 right-6 z-50 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-black active:scale-90 transition-all shadow-sm"
-            >
-              <i className="fa-solid fa-house"></i>
-            </button>
             <StorageView 
               onAddScene={handleAddScene} 
               initialImage={pendingImage} 
@@ -170,12 +164,6 @@ const App: React.FC = () => {
         )}
         {activeTab === 'chat' && (
           <div className="h-full">
-             <button 
-              onClick={() => { setActiveTab('home'); setLiveAutoStart(false); }}
-              className="fixed top-6 right-6 z-50 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-black active:scale-90 transition-all shadow-sm"
-            >
-              <i className="fa-solid fa-house"></i>
-            </button>
             <ChatSearch 
               scenes={scenes} 
               initialQuery={initialChatQuery} 
@@ -187,13 +175,13 @@ const App: React.FC = () => {
         )}
         {activeTab === 'gallery' && (
           <div className="h-full">
-            <button 
-              onClick={() => setActiveTab('home')}
-              className="fixed top-6 right-6 z-50 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-black active:scale-90 transition-all shadow-sm"
-            >
-              <i className="fa-solid fa-house"></i>
-            </button>
-            <GalleryView scenes={scenes} onDelete={handleDeleteScene} />
+            <GalleryView 
+              scenes={scenes} 
+              onDelete={handleDeleteScene}
+              onUpdate={(updatedScene) => {
+                 setScenes(prev => prev.map(s => s.id === updatedScene.id ? updatedScene : s));
+              }}
+            />
           </div>
         )}
       </main>
