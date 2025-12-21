@@ -92,7 +92,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-screen bg-light flex flex-col relative overflow-hidden text-black">
+    <div className="h-full w-full bg-light flex flex-col relative overflow-hidden text-black">
       <button 
         onClick={() => setIsSidebarOpen(true)}
         className="fixed top-3 left-3 z-50 w-10 h-10 flex items-center justify-center text-black hover:opacity-70 transition-opacity hidden"
