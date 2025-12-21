@@ -15,6 +15,7 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [existingCategories, setExistingCategories] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
 
   // Category Drag State
   const [draggingCategory, setDraggingCategory] = useState<string | null>(null);
@@ -658,11 +659,19 @@ const GalleryView: React.FC<GalleryViewProps> = ({ scenes, onDelete, onUpdate, o
       )}
 
       <div className="px-6 py-6 pt-6 flex items-center justify-between">
-        <div>
-           <h1 className="text-3xl font-bold text-black">百宝箱</h1>
-           <p className="text-gray-400 text-sm font-medium mt-1">
-             {scenes.length} 个角落 · {allCategories.length} 个空间
-           </p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowAccountMenu(!showAccountMenu)}
+            className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-gray-700 hover:from-gray-200 hover:to-gray-300 active:scale-95 transition-all shadow-sm border border-gray-200/50 relative"
+          >
+            <i className="fa-solid fa-user text-sm"></i>
+          </button>
+          <div>
+             <h1 className="text-3xl font-bold text-black">百宝箱</h1>
+             <p className="text-gray-400 text-sm font-medium mt-1">
+               {scenes.length} 个角落 · {allCategories.length} 个空间
+             </p>
+          </div>
         </div>
         <div className="flex gap-2">
             <button 
